@@ -1,0 +1,13 @@
+{
+  "name": "@ai-context/tsconfig",
+  "version": "1.0.0",
+  "description": "Shared TypeScript configuration for AI Context Engineering project",
+  "main": "index.js",
+  "files": [
+    "base.json",
+    "nextjs.json",
+    "react.json"
+  ],
+  "keywords": ["typescript", "config"],
+  "license": "MIT"
+}
