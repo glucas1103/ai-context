@@ -32,10 +32,10 @@ export default function LoginPage() {
 
   // Rediriger si déjà authentifié
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!loading && isAuthenticated) {
       router.replace('/repos')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, loading, router])
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">

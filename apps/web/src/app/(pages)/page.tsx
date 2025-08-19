@@ -57,7 +57,6 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               href="/login"
-              onClick={() => track('CTA_Essayer_Hero')}
               aria-label="Essayer AIcontext maintenant"
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 text-center"
             >
@@ -65,7 +64,6 @@ export default function Home() {
             </Link>
             <Link
               href="/login"
-              onClick={() => track('CTA_Inscrire_Hero')}
               aria-label="S&apos;inscrire à AIcontext"
               className="w-full sm:w-auto border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white font-semibold py-4 px-8 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 text-center"
             >
@@ -273,7 +271,6 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               href="/login"
-              onClick={() => track('CTA_Commencer_Final')}
               aria-label="Commencer à utiliser AIcontext maintenant"
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 text-center"
             >
@@ -281,7 +278,6 @@ export default function Home() {
             </Link>
             <Link
               href="/login"
-              onClick={() => track('CTA_Demo_Final')}
               aria-label="Demander une démonstration d'AIcontext"
               className="w-full sm:w-auto border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white font-semibold py-4 px-8 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 text-center"
             >

@@ -31,7 +31,8 @@ export default function ReposPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const { user, isAuthenticated, signOut } = useAuth()
+  const [analyzingRepo, setAnalyzingRepo] = useState<number | null>(null)
+  const { user, isAuthenticated, loading, signOut } = useAuth()
   const router = useRouter()
 
   // Filtrer les dépôts selon le terme de recherche
@@ -44,6 +45,11 @@ export default function ReposPage() {
   // Vérifier l'authentification et charger les dépôts
   useEffect(() => {
     async function loadRepos() {
+      // Attendre que le loading soit terminé pour éviter les redirections prématurées
+      if (loading) {
+        return
+      }
+      
       // Rediriger si pas authentifié
       if (!isAuthenticated) {
         router.replace('/login')
@@ -77,16 +83,63 @@ export default function ReposPage() {
     }
 
     loadRepos()
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, loading, router])
 
   const handleSignOut = async () => {
     await signOut()
   }
 
-  const handleSelectRepo = (repo: Repo) => {
-    // TODO: Implémenter la sélection du dépôt pour analyse
-    console.log('Dépôt sélectionné pour analyse:', repo.fullName)
-    alert(`Sélection du dépôt "${repo.name}" pour analyse (à implémenter)`)
+  const handleSelectRepo = async (repo: Repo) => {
+    if (analyzingRepo === repo.id) return // Éviter les double-clics
+    
+    setAnalyzingRepo(repo.id)
+    setError(null)
+
+    try {
+      // 1. Créer ou récupérer le workspace
+      const workspaceResponse = await fetch('/api/workspaces', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: repo.name,
+          url: repo.url,
+        }),
+      })
+
+      if (!workspaceResponse.ok) {
+        const errorData = await workspaceResponse.json()
+        throw new Error(errorData.error?.message || 'Erreur lors de la création du workspace')
+      }
+
+      const workspaceData = await workspaceResponse.json()
+      const workspaceId = workspaceData.data.id
+
+      // 2. Lancer l'analyse du dépôt
+      const analyzeResponse = await fetch(`/api/workspaces/${workspaceId}/analyze`, {
+        method: 'POST',
+      })
+
+      if (!analyzeResponse.ok) {
+        const errorData = await analyzeResponse.json()
+        throw new Error(errorData.error?.message || 'Erreur lors de l\'analyse du dépôt')
+      }
+
+      const analyzeData = await analyzeResponse.json()
+      console.log('Analysis completed successfully:', analyzeData)
+      
+      // 3. Rediriger vers la vue d'exploration de contexte
+      const targetUrl = `/workspaces/${workspaceId}/context`
+      console.log('Redirecting to:', targetUrl)
+      router.push(targetUrl)
+
+    } catch (err) {
+      console.error('Erreur lors de l\'analyse du dépôt:', err)
+      setError(err instanceof Error ? err.message : 'Erreur inattendue lors de l\'analyse')
+    } finally {
+      setAnalyzingRepo(null)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -252,9 +305,21 @@ export default function ReposPage() {
                 </p>
                 <button
                   onClick={() => handleSelectRepo(repo)}
-                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                  disabled={analyzingRepo === repo.id}
+                  className={`px-3 py-1 text-white text-sm rounded transition-colors ${
+                    analyzingRepo === repo.id
+                      ? 'bg-gray-600 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
                 >
-                  Analyser
+                  {analyzingRepo === repo.id ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b border-white"></div>
+                      <span>Analyse...</span>
+                    </div>
+                  ) : (
+                    'Analyser'
+                  )}
                 </button>
               </div>
             </div>
@@ -263,7 +328,7 @@ export default function ReposPage() {
 
         {filteredRepos.length === 0 && searchTerm && (
           <div className="text-center py-12">
-            <p className="text-gray-400">Aucun dépôt trouvé pour "{searchTerm}"</p>
+            <p className="text-gray-400">Aucun dépôt trouvé pour &quot;{searchTerm}&quot;</p>
           </div>
         )}
 

@@ -58,12 +58,8 @@ export function useAuth() {
           error: null 
         })
 
-        // Rediriger selon l'état d'authentification
-        if (event === 'SIGNED_IN' && session?.user) {
-          router.push('/repos')
-        } else if (event === 'SIGNED_OUT') {
-          router.push('/login')
-        }
+        // Note: Les redirections sont gérées par les pages individuelles
+        // pour éviter les boucles de redirection
       }
     )
 
