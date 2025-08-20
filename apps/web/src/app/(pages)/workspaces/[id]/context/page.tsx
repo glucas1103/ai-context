@@ -191,39 +191,9 @@ export default function WorkspaceContextPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
-      {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 flex-shrink-0">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push('/repos')}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                ← Retour aux dépôts
-              </button>
-              <div className="h-6 border-l border-gray-600"></div>
-              <h1 className="text-xl font-bold text-white">
-                {workspace?.name || 'Espace de travail'}
-              </h1>
-              {workspace?.url && (
-                <a
-                  href={workspace.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 text-sm"
-                >
-                  Voir sur GitHub ↗
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <div className="h-full">
       {/* Triple Panel Layout with Resizable Panels */}
-      <div className="flex-1">
+      <div className="h-full">
         <PanelGroup direction="horizontal" className="h-full">
           {/* Left Panel - File Tree */}
           <Panel defaultSize={25} minSize={15} maxSize={40}>

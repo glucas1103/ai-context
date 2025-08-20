@@ -18,6 +18,8 @@
     "playwright:install": "playwright install"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "@mdxeditor/editor": "^3.42.0",
     "@monaco-editor/react": "^4.6.0",
     "@supabase/ssr": "^0.1.0",
     "@supabase/supabase-js": "^2.38.5",
