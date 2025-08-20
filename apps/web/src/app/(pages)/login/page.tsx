@@ -5,27 +5,38 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 export default function LoginPage() {
-  const { loading, error, signInWithGitHub, isAuthenticated } = useAuth()
+  const { loading, error, signInWithGitHub, isAuthenticated, clearCorruptedSession } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [urlError, setUrlError] = useState<string | null>(null)
 
+  // Vérifier si c'est l'erreur de session corrompue
+  const isCorruptedSessionError = error?.includes('User from sub claim in JWT does not exist')
+
   // Vérifier les paramètres d'erreur dans l'URL
   useEffect(() => {
     const errorParam = searchParams.get('error')
+    const errorMessage = searchParams.get('message')
+    
     if (errorParam) {
       switch (errorParam) {
         case 'auth_error':
-          setUrlError('Erreur lors de l\'authentification. Veuillez réessayer.')
+          setUrlError(errorMessage || 'Erreur lors de l\'authentification. Veuillez réessayer.')
+          break
+        case 'oauth_error':
+          setUrlError(errorMessage || 'Erreur lors de la connexion avec GitHub. Veuillez réessayer.')
           break
         case 'no_code':
           setUrlError('Code d\'autorisation manquant. Veuillez réessayer la connexion.')
+          break
+        case 'no_session':
+          setUrlError('Session non créée. Veuillez réessayer la connexion.')
           break
         case 'unexpected_error':
           setUrlError('Une erreur inattendue s\'est produite. Veuillez réessayer.')
           break
         default:
-          setUrlError('Une erreur s\'est produite lors de la connexion.')
+          setUrlError(errorMessage || 'Une erreur s\'est produite lors de la connexion.')
       }
     }
   }, [searchParams])
@@ -62,6 +73,16 @@ export default function LoginPage() {
           {((error && error !== 'Auth session missing!') || urlError) && (
             <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
               {urlError || error}
+              {isCorruptedSessionError && (
+                <div className="mt-2">
+                  <button
+                    onClick={clearCorruptedSession}
+                    className="text-xs bg-red-700 hover:bg-red-600 px-2 py-1 rounded transition-colors"
+                  >
+                    Nettoyer la session
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

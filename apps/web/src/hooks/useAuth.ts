@@ -30,6 +30,16 @@ export function useAuth() {
           // "Auth session missing!" est normal quand l'utilisateur n'est pas connecté
           if (error.message === 'Auth session missing!') {
             setAuthState({ user: null, loading: false, error: null })
+          } else if (error.message.includes('JWT expired') || error.message.includes('Invalid JWT')) {
+            // Token expiré ou invalide - nettoyer la session
+            console.warn('Token expiré ou invalide, nettoyage de la session')
+            await supabase.auth.signOut({ scope: 'local' })
+            setAuthState({ user: null, loading: false, error: null })
+          } else if (error.message.includes('User from sub claim in JWT does not exist')) {
+            // Utilisateur supprimé de la DB mais JWT encore valide - nettoyer la session
+            console.warn('Utilisateur supprimé de la base de données, nettoyage de la session')
+            await supabase.auth.signOut({ scope: 'local' })
+            setAuthState({ user: null, loading: false, error: null })
           } else {
             console.error('Erreur lors de la récupération de l\'utilisateur:', error.message)
             setAuthState({ user: null, loading: false, error: error.message })
@@ -102,11 +112,11 @@ export function useAuth() {
   }
 
   // Fonction de déconnexion
-  const signOut = async () => {
+  const signOut = async (scope: 'local' | 'global' = 'local') => {
     try {
       setAuthState(prev => ({ ...prev, loading: true, error: null }))
 
-      const { error } = await supabase.auth.signOut()
+      const { error } = await supabase.auth.signOut({ scope })
       
       if (error) {
         console.error('Erreur lors de la déconnexion:', error.message)
@@ -129,10 +139,48 @@ export function useAuth() {
     }
   }
 
+  // Fonction de déconnexion globale (pour les paramètres de sécurité)
+  const signOutAllDevices = async () => {
+    return signOut('global')
+  }
+
+  // Fonction pour rafraîchir la session
+  const refreshSession = async () => {
+    try {
+      const { data, error } = await supabase.auth.refreshSession()
+      if (error) {
+        console.error('Erreur lors du rafraîchissement de session:', error.message)
+        // Si le rafraîchissement échoue, déconnecter l'utilisateur
+        await signOut('local')
+      } else if (data.session) {
+        setAuthState({ user: data.session.user, loading: false, error: null })
+      }
+    } catch (err) {
+      console.error('Erreur lors du rafraîchissement de session:', err)
+      await signOut('local')
+    }
+  }
+
+  // Fonction pour nettoyer les sessions corrompues
+  const clearCorruptedSession = async () => {
+    try {
+      console.log('Nettoyage de la session corrompue...')
+      await supabase.auth.signOut({ scope: 'local' })
+      setAuthState({ user: null, loading: false, error: null })
+      console.log('Session nettoyée avec succès')
+    } catch (err) {
+      console.error('Erreur lors du nettoyage de session:', err)
+      setAuthState({ user: null, loading: false, error: null })
+    }
+  }
+
   return {
     ...authState,
     signInWithGitHub,
     signOut,
+    signOutAllDevices,
+    refreshSession,
+    clearCorruptedSession,
     isAuthenticated: !!authState.user
   }
 }
