@@ -9,13 +9,15 @@ export interface AuthState {
   user: User | null
   loading: boolean
   error: string | null
+  providerToken?: string | null
 }
 
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     loading: true,
-    error: null
+    error: null,
+    providerToken: null
   })
   const router = useRouter()
   const supabase = createClient()
@@ -29,30 +31,38 @@ export function useAuth() {
         if (error) {
           // "Auth session missing!" est normal quand l'utilisateur n'est pas connecté
           if (error.message === 'Auth session missing!') {
-            setAuthState({ user: null, loading: false, error: null })
+            setAuthState({ user: null, loading: false, error: null, providerToken: null })
           } else if (error.message.includes('JWT expired') || error.message.includes('Invalid JWT')) {
             // Token expiré ou invalide - nettoyer la session
             console.warn('Token expiré ou invalide, nettoyage de la session')
             await supabase.auth.signOut({ scope: 'local' })
-            setAuthState({ user: null, loading: false, error: null })
+            setAuthState({ user: null, loading: false, error: null, providerToken: null })
           } else if (error.message.includes('User from sub claim in JWT does not exist')) {
             // Utilisateur supprimé de la DB mais JWT encore valide - nettoyer la session
             console.warn('Utilisateur supprimé de la base de données, nettoyage de la session')
             await supabase.auth.signOut({ scope: 'local' })
-            setAuthState({ user: null, loading: false, error: null })
+            setAuthState({ user: null, loading: false, error: null, providerToken: null })
           } else {
             console.error('Erreur lors de la récupération de l\'utilisateur:', error.message)
-            setAuthState({ user: null, loading: false, error: error.message })
+            setAuthState({ user: null, loading: false, error: error.message, providerToken: null })
           }
         } else {
-          setAuthState({ user, loading: false, error: null })
+          // Récupérer le provider token si disponible
+          const { data: { session } } = await supabase.auth.getSession()
+          setAuthState({ 
+            user, 
+            loading: false, 
+            error: null, 
+            providerToken: session?.provider_token || null 
+          })
         }
       } catch (err) {
         console.error('Erreur inattendue:', err)
         setAuthState({ 
           user: null, 
           loading: false, 
-          error: 'Erreur lors de la vérification de l\'authentification' 
+          error: 'Erreur lors de la vérification de l\'authentification',
+          providerToken: null
         })
       }
     }
@@ -62,14 +72,13 @@ export function useAuth() {
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email)
         
+        // Ne pas rediriger automatiquement - laisser les pages gérer leurs propres redirections
         setAuthState({ 
           user: session?.user ?? null, 
           loading: false, 
-          error: null 
+          error: null,
+          providerToken: session?.provider_token || null
         })
-
-        // Note: Les redirections sont gérées par les pages individuelles
-        // pour éviter les boucles de redirection
       }
     )
 
@@ -78,7 +87,7 @@ export function useAuth() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [router, supabase.auth])
+  }, [supabase.auth])
 
   // Fonction de connexion GitHub
   const signInWithGitHub = async () => {
@@ -126,7 +135,7 @@ export function useAuth() {
           error: 'Erreur lors de la déconnexion'
         }))
       } else {
-        setAuthState({ user: null, loading: false, error: null })
+        setAuthState({ user: null, loading: false, error: null, providerToken: null })
         router.push('/login')
       }
     } catch (err) {
@@ -144,7 +153,7 @@ export function useAuth() {
     return signOut('global')
   }
 
-  // Fonction pour rafraîchir la session
+  // Fonction pour rafraîchir la session avec gestion des provider tokens
   const refreshSession = async () => {
     try {
       const { data, error } = await supabase.auth.refreshSession()
@@ -153,7 +162,12 @@ export function useAuth() {
         // Si le rafraîchissement échoue, déconnecter l'utilisateur
         await signOut('local')
       } else if (data.session) {
-        setAuthState({ user: data.session.user, loading: false, error: null })
+        setAuthState({ 
+          user: data.session.user, 
+          loading: false, 
+          error: null,
+          providerToken: data.session.provider_token || null
+        })
       }
     } catch (err) {
       console.error('Erreur lors du rafraîchissement de session:', err)
@@ -166,12 +180,22 @@ export function useAuth() {
     try {
       console.log('Nettoyage de la session corrompue...')
       await supabase.auth.signOut({ scope: 'local' })
-      setAuthState({ user: null, loading: false, error: null })
+      setAuthState({ user: null, loading: false, error: null, providerToken: null })
       console.log('Session nettoyée avec succès')
     } catch (err) {
       console.error('Erreur lors du nettoyage de session:', err)
-      setAuthState({ user: null, loading: false, error: null })
+      setAuthState({ user: null, loading: false, error: null, providerToken: null })
     }
+  }
+
+  // Fonction pour vérifier si le provider token est disponible
+  const hasValidProviderToken = () => {
+    return !!authState.providerToken
+  }
+
+  // Fonction pour obtenir le provider token actuel
+  const getProviderToken = () => {
+    return authState.providerToken
   }
 
   return {
@@ -181,6 +205,8 @@ export function useAuth() {
     signOutAllDevices,
     refreshSession,
     clearCorruptedSession,
+    hasValidProviderToken,
+    getProviderToken,
     isAuthenticated: !!authState.user
   }
 }

@@ -9,6 +9,7 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [urlError, setUrlError] = useState<string | null>(null)
+  const [hasRedirected, setHasRedirected] = useState(false)
 
   // Vérifier si c'est l'erreur de session corrompue
   const isCorruptedSessionError = error?.includes('User from sub claim in JWT does not exist')
@@ -41,12 +42,13 @@ export default function LoginPage() {
     }
   }, [searchParams])
 
-  // Rediriger si déjà authentifié
+  // Rediriger si déjà authentifié (une seule fois)
   useEffect(() => {
-    if (!loading && isAuthenticated) {
+    if (!loading && isAuthenticated && !hasRedirected) {
+      setHasRedirected(true)
       router.replace('/repos')
     }
-  }, [isAuthenticated, loading, router])
+  }, [isAuthenticated, loading, router, hasRedirected])
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">

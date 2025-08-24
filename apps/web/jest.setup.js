@@ -45,8 +45,52 @@ jest.mock('@/lib/supabase/server', () => ({
   })),
 }))
 
-// Global test utilities
+// Mock Next.js Request
+global.Request = class MockRequest {
+  constructor(url) {
+    this.url = url
+  }
+}
+
+// Mock Next.js Response
+global.Response = class MockResponse {
+  constructor(body, init) {
+    this.body = body
+    this.init = init
+  }
+  json() {
+    return Promise.resolve(this.body)
+  }
+  text() {
+    return Promise.resolve(JSON.stringify(this.body))
+  }
+}
+
+// Mock fetch
 global.fetch = jest.fn()
+
+// Mock NextResponse
+jest.mock('next/server', () => ({
+  NextResponse: {
+    json: jest.fn((data, init) => {
+      const response = {
+        json: () => Promise.resolve(data),
+        status: init?.status || 200
+      }
+      return response
+    })
+  }
+}))
+
+// Mock console methods to reduce noise in tests
+global.console = {
+  ...console,
+  log: jest.fn(),
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+}
 
 // Reset all mocks between tests
 beforeEach(() => {

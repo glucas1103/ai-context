@@ -3,7 +3,7 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { ExclamationTriangleIcon, PlusIcon, SparklesIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+import { HiExclamationCircle, HiPlus, HiSparkles, HiDocumentText } from 'react-icons/hi'
 
 interface WorkspaceData {
   id: string
@@ -92,7 +92,7 @@ export default function WorkspaceIssuesPage({
                 </p>
               </div>
               <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                <PlusIcon className="h-5 w-5" />
+                <HiPlus className="h-5 w-5" />
                 <span>Nouvelle tâche</span>
               </button>
             </div>
@@ -101,7 +101,7 @@ export default function WorkspaceIssuesPage({
           {/* Coming Soon Card */}
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-8">
             <div className="text-center mb-8">
-              <ExclamationTriangleIcon className="h-16 w-16 text-orange-400 mx-auto mb-4" />
+              <HiExclamationCircle className="h-16 w-16 text-orange-400 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-white mb-2">
                 Génération de Tâches IA
               </h2>
@@ -113,7 +113,7 @@ export default function WorkspaceIssuesPage({
             {/* Features Preview */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               <div className="bg-gray-700 rounded-lg p-6">
-                <SparklesIcon className="h-8 w-8 text-green-400 mx-auto mb-3" />
+                <HiSparkles className="h-8 w-8 text-green-400 mx-auto mb-3" />
                 <h3 className="text-lg font-semibold text-white mb-2">
                   Génération IA
                 </h3>
@@ -123,7 +123,7 @@ export default function WorkspaceIssuesPage({
               </div>
 
               <div className="bg-gray-700 rounded-lg p-6">
-                <DocumentTextIcon className="h-8 w-8 text-blue-400 mx-auto mb-3" />
+                <HiDocumentText className="h-8 w-8 text-blue-400 mx-auto mb-3" />
                 <h3 className="text-lg font-semibold text-white mb-2">
                   Contexte enrichi
                 </h3>
@@ -133,7 +133,7 @@ export default function WorkspaceIssuesPage({
               </div>
 
               <div className="bg-gray-700 rounded-lg p-6">
-                <ExclamationTriangleIcon className="h-8 w-8 text-yellow-400 mx-auto mb-3" />
+                <HiExclamationCircle className="h-8 w-8 text-yellow-400 mx-auto mb-3" />
                 <h3 className="text-lg font-semibold text-white mb-2">
                   Export flexible
                 </h3>

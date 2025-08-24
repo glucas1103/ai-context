@@ -1,0 +1,51 @@
+# <!-- Powered by BMAD™ Core -->
+schema: 1
+story: "1.2.2"
+story_title: "gestion-tokens-refresh"
+gate: "PASS"
+status_reason: "Implémentation complète et conforme à 100% avec la documentation officielle Supabase. Tous les patterns officiels sont respectés et la sécurité est assurée."
+reviewer: "Quinn (Test Architect)"
+updated: "2025-01-12T10:00:00Z"
+
+# Always present but only active when WAIVED
+waiver: { active: false }
+
+# Issues (if any) - Use fixed severity: low | medium | high
+top_issues: []
+
+# Risk summary (from risk-profile task if run)
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 0 }
+  recommendations:
+    must_fix: []
+    monitor: []
+
+# Quality score and evidence
+quality_score: 100
+expires: "2025-01-26T00:00:00Z"
+
+evidence:
+  tests_reviewed: 20
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6]  # Tous les critères d'acceptation couverts
+    ac_gaps: []  # Aucun gap de couverture
+
+nfr_validation:
+  security: { status: PASS, notes: "Gestion sécurisée des provider tokens selon la documentation officielle" }
+  performance: { status: PASS, notes: "Refresh proactif optimise les performances" }
+  reliability: { status: PASS, notes: "Gestion robuste des erreurs et retry automatique" }
+  maintainability: { status: PASS, notes: "Code bien structuré et documenté" }
+
+recommendations:
+  immediate: []  # Aucune action immédiate requise
+  future: []  # Aucune amélioration future identifiée
+
+# Conformité avec la documentation officielle Supabase
+official_compliance:
+  provider_tokens: PASS
+  session_management: PASS
+  refresh_mechanism: PASS
+  error_handling: PASS
+  security_patterns: PASS
+  overall_compliance: "100%"

@@ -32,28 +32,70 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Évite d'écrire de la logique entre createServerClient et
-  // supabase.auth.getUser(). Un simple bug pourrait casser votre middleware !
+  // IMPORTANT: Ne pas supprimer cette ligne
+  const { data: { user }, error } = await supabase.auth.getUser()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Gérer les erreurs d'authentification
+  if (error) {
+    console.log('Middleware auth error:', error.message)
+    
+    // Si c'est une erreur de session manquante, c'est normal pour les utilisateurs non connectés
+    if (error.message === 'Auth session missing!') {
+      // Permettre l'accès aux pages publiques
+      if (
+        request.nextUrl.pathname.startsWith('/login') ||
+        request.nextUrl.pathname.startsWith('/auth') ||
+        request.nextUrl.pathname.startsWith('/error') ||
+        request.nextUrl.pathname === '/'
+      ) {
+        return supabaseResponse
+      }
+      
+      // Rediriger vers login pour les pages protégées
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+    
+    // Pour les autres erreurs (token expiré, etc.), nettoyer et rediriger
+    console.warn('Auth error in middleware, redirecting to login:', error.message)
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
 
-  // IMPORTANT: Vous *devez* retourner la supabaseResponse objet tel qu'il l'est.
-  // Si vous créez un nouveau NextResponse ici, vous pourriez supprimer les cookies du navigateur.
+  // Utilisateur authentifié
+  if (user) {
+    // Si l'utilisateur est sur la page login, le rediriger vers repos
+    if (request.nextUrl.pathname === '/login') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/repos'
+      return NextResponse.redirect(url)
+    }
+    
+    // Permettre l'accès à toutes les autres pages
+    return supabaseResponse
+  }
 
-  return supabaseResponse
+  // Utilisateur non authentifié
+  // Permettre l'accès aux pages publiques
+  if (
+    request.nextUrl.pathname.startsWith('/login') ||
+    request.nextUrl.pathname.startsWith('/auth') ||
+    request.nextUrl.pathname.startsWith('/error') ||
+    request.nextUrl.pathname === '/'
+  ) {
+    return supabaseResponse
+  }
+  
+  // Rediriger vers login pour les pages protégées
+  const url = request.nextUrl.clone()
+  url.pathname = '/login'
+  return NextResponse.redirect(url)
 }
 
 export const config = {
   matcher: [
-    /*
-     * Correspond à tous les chemins de requête sauf pour ceux commençant par :
-     * - _next/static (fichiers statiques)
-     * - _next/image (fichiers d'optimisation d'image)
-     * - favicon.ico (fichier favicon)
-     * N'oubliez pas de modifier cette configuration si nécessaire
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

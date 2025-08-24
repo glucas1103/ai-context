@@ -5,14 +5,14 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { 
-  BellIcon, 
-  ChevronDownIcon, 
-  Cog6ToothIcon,
-  DocumentTextIcon,
-  ExclamationTriangleIcon,
-  FolderIcon,
-  UserCircleIcon
-} from '@heroicons/react/24/outline'
+  HiBell, 
+  HiChevronDown, 
+  HiCog,
+  HiDocumentText,
+  HiExclamationCircle,
+  HiFolder,
+  HiUserCircle
+} from 'react-icons/hi'
 
 interface WorkspaceData {
   id: string
@@ -163,11 +163,11 @@ export default function WorkspaceLayout({
                   onClick={() => setIsRepoDropdownOpen(!isRepoDropdownOpen)}
                   className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-gray-700 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <FolderIcon className="h-5 w-5" />
+                  <HiFolder className="h-5 w-5" />
                   <span className="truncate max-w-48">
                     {workspace?.name || 'Sélectionner un repo'}
                   </span>
-                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${isRepoDropdownOpen ? 'rotate-180' : ''}`} />
+                  <HiChevronDown className={`h-4 w-4 transition-transform ${isRepoDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Repository dropdown */}
@@ -186,7 +186,7 @@ export default function WorkspaceLayout({
                             }}
                             className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-600 flex items-center space-x-2"
                           >
-                            <FolderIcon className="h-4 w-4" />
+                            <HiFolder className="h-4 w-4" />
                             <span className="truncate">{repo.name}</span>
                           </button>
                         ))
@@ -223,7 +223,7 @@ export default function WorkspaceLayout({
                 }`}
               >
                 <div className="flex items-center space-x-2">
-                  <DocumentTextIcon className="h-4 w-4" />
+                  <HiDocumentText className="h-4 w-4" />
                   <span>Context</span>
                 </div>
               </Link>
@@ -237,7 +237,7 @@ export default function WorkspaceLayout({
                 }`}
               >
                 <div className="flex items-center space-x-2">
-                  <DocumentTextIcon className="h-4 w-4" />
+                  <HiDocumentText className="h-4 w-4" />
                   <span>Documentation</span>
                 </div>
               </Link>
@@ -251,7 +251,7 @@ export default function WorkspaceLayout({
                 }`}
               >
                 <div className="flex items-center space-x-2">
-                  <ExclamationTriangleIcon className="h-4 w-4" />
+                  <HiExclamationCircle className="h-4 w-4" />
                   <span>Issues</span>
                 </div>
               </Link>
@@ -261,7 +261,7 @@ export default function WorkspaceLayout({
             <div className="flex items-center space-x-4">
               {/* Notifications */}
               <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors">
-                <BellIcon className="h-5 w-5" />
+                <HiBell className="h-5 w-5" />
               </button>
 
               {/* User menu */}
@@ -270,9 +270,9 @@ export default function WorkspaceLayout({
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center space-x-2 p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors"
                 >
-                  <UserCircleIcon className="h-5 w-5" />
+                  <HiUserCircle className="h-5 w-5" />
                   <span className="text-sm">{user?.user_metadata?.full_name || user?.email || 'Utilisateur'}</span>
-                  <ChevronDownIcon className="h-4 w-4" />
+                  <HiChevronDown className="h-4 w-4" />
                 </button>
 
                 {/* User dropdown */}
@@ -284,7 +284,7 @@ export default function WorkspaceLayout({
                         className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-200 hover:bg-gray-600"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
-                        <FolderIcon className="h-4 w-4" />
+                        <HiFolder className="h-4 w-4" />
                         <span>Gérer les repos</span>
                       </Link>
                       
@@ -295,7 +295,7 @@ export default function WorkspaceLayout({
                         }}
                         className="w-full text-left flex items-center space-x-2 px-4 py-2 text-sm text-gray-200 hover:bg-gray-600"
                       >
-                        <UserCircleIcon className="h-4 w-4" />
+                        <HiUserCircle className="h-4 w-4" />
                         <span>Gérer l'équipe</span>
                       </button>
                       
@@ -305,7 +305,7 @@ export default function WorkspaceLayout({
                         onClick={handleSignOut}
                         className="w-full text-left flex items-center space-x-2 px-4 py-2 text-sm text-gray-200 hover:bg-gray-600"
                       >
-                        <Cog6ToothIcon className="h-4 w-4" />
+                        <HiCog className="h-4 w-4" />
                         <span>Se déconnecter</span>
                       </button>
                     </div>
