@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { FileTreeNode } from '@/lib/types/context'
 import { NextResponse, NextRequest } from 'next/server'
 import { createErrorResponse, handleApiError } from '@/lib/errors'
 
@@ -140,19 +141,7 @@ interface GitHubTreeItem {
   url: string
 }
 
-// Interface pour notre structure d'arbre optimisée pour React Arborist
-interface FileTreeNode {
-  id: string
-  name: string
-  path: string
-  type: 'file' | 'directory'
-  size?: number
-  sha?: string
-  language?: string
-  children?: FileTreeNode[]
-  url?: string
-  download_url?: string
-}
+// Import du type centralisé au lieu de duplication
 
 // Fonction pour construire l'arborescence structurée
 async function buildFileTreeStructure(
