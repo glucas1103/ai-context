@@ -13,7 +13,11 @@ interface DocumentationPageProps {
 }
 
 const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
-  const resolvedParams = React.use(params);
+  const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null);
+
+  useEffect(() => {
+    params.then(setResolvedParams);
+  }, [params]);
   const [treeData, setTreeData] = useState<DocumentationNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<DocumentationNode | null>(null);
   const [fileContent, setFileContent] = useState('');
@@ -22,11 +26,18 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createModal, setCreateModal] = useState<{
+    isOpen: boolean;
+    type: 'folder' | 'file' | null;
+    parentId?: string;
+  }>({ isOpen: false, type: null });
 
-  const workspaceId = resolvedParams.id;
+  const workspaceId = resolvedParams?.id;
 
   // Charger la structure de documentation
   const loadDocumentationTree = useCallback(async () => {
+    if (!workspaceId) return;
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -60,6 +71,8 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
 
   // Charger le contenu d'un fichier
   const loadFileContent = useCallback(async (fileId: string) => {
+    if (!workspaceId) return;
+    
     try {
       const response = await fetch(`/api/workspaces/${workspaceId}/documentation/${fileId}/content`);
       const result: DocumentationApiResponse<{ content: string }> = await response.json();
@@ -102,10 +115,12 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
 
   // Créer un dossier
   const createFolder = useCallback(async (parentId?: string) => {
-    try {
-      const name = prompt('Nom du nouveau dossier :');
-      if (!name) return;
+    setCreateModal({ isOpen: true, type: 'folder', parentId });
+  }, []);
 
+  // Créer un dossier avec nom
+  const doCreateFolder = useCallback(async (name: string, parentId?: string) => {
+    try {
       const response = await fetch(`/api/workspaces/${workspaceId}/documentation/folders`, {
         method: 'POST',
         headers: {
@@ -122,6 +137,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
       
       if (result.success) {
         await loadDocumentationTree(); // Recharger l'arborescence
+        setCreateModal({ isOpen: false, type: null });
       } else {
         setError(result.error?.message || 'Erreur lors de la création du dossier');
       }
@@ -133,10 +149,12 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
 
   // Créer un fichier
   const createFile = useCallback(async (parentId?: string) => {
-    try {
-      const name = prompt('Nom du nouveau fichier (sans extension) :');
-      if (!name) return;
+    setCreateModal({ isOpen: true, type: 'file', parentId });
+  }, []);
 
+  // Créer un fichier avec nom
+  const doCreateFile = useCallback(async (name: string, parentId?: string) => {
+    try {
       const response = await fetch(`/api/workspaces/${workspaceId}/documentation/files`, {
         method: 'POST',
         headers: {
@@ -154,6 +172,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
       
       if (result.success) {
         await loadDocumentationTree(); // Recharger l'arborescence
+        setCreateModal({ isOpen: false, type: null });
         // Sélectionner le nouveau fichier automatiquement
         if (result.data) {
           setSelectedFile(result.data);
@@ -225,11 +244,37 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
 
   // Déplacer des éléments
   const moveItems = useCallback(async (dragIds: string[], parentId?: string, index?: number) => {
-    // Pour le moment, on va juste recharger l'arborescence
-    // L'implémentation complète du drag & drop nécessiterait plus de travail
-    console.log('Move items:', { dragIds, parentId, index });
-    // TODO: Implémenter la logique de déplacement
-  }, []);
+    try {
+      console.log('Moving items:', { dragIds, parentId, index });
+      
+      // Déplacer chaque élément
+      for (const dragId of dragIds) {
+        const response = await fetch(`/api/workspaces/${workspaceId}/documentation/${dragId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            parent_id: parentId,
+            order_index: index,
+          }),
+        });
+
+        const result: DocumentationApiResponse<DocumentationNode> = await response.json();
+        
+        if (!result.success) {
+          setError(result.error?.message || 'Erreur lors du déplacement');
+          return;
+        }
+      }
+      
+      // Recharger l'arborescence après le déplacement
+      await loadDocumentationTree();
+    } catch (error) {
+      console.error('Error moving items:', error);
+      setError('Erreur de connexion lors du déplacement');
+    }
+  }, [workspaceId, loadDocumentationTree]);
 
   // Sélectionner un fichier
   const handleSelectFile = useCallback(async (node: DocumentationNode | null) => {
@@ -280,13 +325,105 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
 
   // Charger les données au montage du composant
   useEffect(() => {
-    loadDocumentationTree();
-  }, [loadDocumentationTree]);
+    if (workspaceId) {
+      loadDocumentationTree();
+    }
+  }, [loadDocumentationTree, workspaceId]);
 
   // Fermer les notifications d'erreur
   const clearError = () => setError(null);
 
-  if (isLoading) {
+  // Composant de modale pour créer un élément
+  const CreateItemModal = () => {
+    const [name, setName] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!name.trim()) return;
+
+      setIsSubmitting(true);
+      try {
+        if (createModal.type === 'folder') {
+          await doCreateFolder(name.trim(), createModal.parentId);
+        } else if (createModal.type === 'file') {
+          await doCreateFile(name.trim(), createModal.parentId);
+        }
+      } finally {
+        setIsSubmitting(false);
+        setName('');
+      }
+    };
+
+    const handleClose = () => {
+      setCreateModal({ isOpen: false, type: null });
+      setName('');
+    };
+
+    if (!createModal.isOpen) return null;
+
+    const isFolder = createModal.type === 'folder';
+    const title = isFolder ? 'Nouveau Dossier' : 'Nouveau Fichier';
+    const placeholder = isFolder ? 'Nom du dossier...' : 'Nom du fichier (sans extension)...';
+    const icon = isFolder ? '📁' : '📄';
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 shadow-xl">
+          <div className="flex items-center space-x-3 mb-4">
+            <span className="text-2xl">{icon}</span>
+            <h2 className="text-xl font-semibold text-white">{title}</h2>
+          </div>
+          
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+                Nom
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={placeholder}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                autoFocus
+                disabled={isSubmitting}
+              />
+              {!isFolder && (
+                <p className="text-xs text-gray-400 mt-1">
+                  L'extension .md sera automatiquement ajoutée
+                </p>
+              )}
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="px-4 py-2 text-gray-300 hover:text-white transition-colors disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={!name.trim() || isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              >
+                {isSubmitting && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                )}
+                <span>{isSubmitting ? 'Création...' : 'Créer'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  if (isLoading || !resolvedParams) {
     return (
       <div className="h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -298,9 +435,9 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
   }
 
   return (
-    <div className="h-screen bg-gray-900 flex flex-col">
+    <div className="h-screen bg-gray-900 flex flex-col overflow-hidden">
       {/* En-tête */}
-      <header className="bg-gray-800 border-b border-gray-700 p-4">
+      <header className="bg-gray-800 border-b border-gray-700 p-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-white">Documentation</h1>
@@ -319,7 +456,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
 
       {/* Notification d'erreur */}
       {error && (
-        <div className="bg-red-600 text-white p-3 flex items-center justify-between">
+        <div className="bg-red-600 text-white p-3 flex items-center justify-between flex-shrink-0">
           <span>{error}</span>
           <button
             onClick={clearError}
@@ -331,10 +468,10 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
       )}
 
       {/* Interface principale à trois panneaux */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 overflow-hidden">
         <div className="h-full flex gap-4">
           {/* Panneau de navigation (gauche) */}
-          <div className="w-1/4 min-w-[300px] max-w-[400px]">
+          <div className="w-1/4 min-w-[300px] max-w-[400px] h-full">
             <DocumentationTree
               data={treeData}
               onSelect={handleSelectFile}
@@ -344,11 +481,12 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
               onRename={renameItem}
               onDelete={deleteItem}
               onMove={moveItems}
+              className="h-full"
             />
           </div>
 
           {/* Panneau central (éditeur) */}
-          <div className="flex-1 min-w-[400px]">
+          <div className="flex-1 min-w-[400px] h-full">
             <div className="h-full bg-gray-900 rounded-lg">
               {selectedFile ? (
                 selectedFile.type === 'file' ? (
@@ -384,7 +522,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
           </div>
 
           {/* Panneau de chat (droite) */}
-          <div className="w-1/4 min-w-[300px] max-w-[400px]">
+          <div className="w-1/4 min-w-[300px] max-w-[400px] h-full">
             <ChatPanel
               onSendMessage={handleSendMessage}
               messages={messages}
@@ -394,6 +532,9 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
           </div>
         </div>
       </div>
+
+      {/* Modale de création */}
+      <CreateItemModal />
     </div>
   );
 };
