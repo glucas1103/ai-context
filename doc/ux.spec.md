@@ -113,6 +113,27 @@ graph TD
 
 ```
 
+### **Parcours 3 : Documentation Personnalisée**
+
+- **Objectif de l'Utilisateur :** "En tant que 'Gardien du Contexte', mon but est de créer et maintenir une documentation personnalisée adaptée à mes besoins métier."
+- **Diagramme du Parcours :**
+
+```
+graph TD
+    A[Arrivée sur l'onglet 'Documentation'] --> B[Navigue dans la structure personnalisée];
+    B --> C[Sélectionne un fichier ou dossier];
+    C --> D{Action souhaitée?};
+    D -- "Créer nouveau" --> E[Clique sur 'Nouveau fichier/dossier'];
+    D -- "Éditer existant" --> F[Ouvre l'éditeur TipTap];
+    E --> G[Saisit le nom et le type];
+    G --> H[Crée l'élément dans la structure];
+    F --> I[Édite le contenu en markdown];
+    I --> J[Auto-sauvegarde en temps réel];
+    H --> K[Fin du parcours];
+    J --> K;
+
+```
+
 ## **4. Wireframes & Maquettes**
 
 - **Outil de Design :** **Figma**. Les maquettes haute-fidélité seront créées et maintenues dans un projet Figma partagé.
@@ -121,12 +142,41 @@ graph TD
   - **Éléments Clés :**
     - **Panneau de Gauche (Navigation) :** Sélecteur de vue (défaut/personnalisé), arborescence des fichiers, barre de recherche.
     - **Panneau Central (Contenu) :** Visionneuse/éditeur de Markdown, affichage en mode "diff" pour les suggestions.
-    - **Panneau de Droite (Action/IA) :** Interface de chat conversationnel.
+    - **Panneau de Droite (Action/IA) :** Interface de chat conversationnel avec agents spécialisés.
 
 ## **5. Bibliothèque de Composants / Design System**
 
 - **Approche :** Création d'un Design System personnalisé en utilisant **Tailwind CSS** pour un équilibre entre vitesse de développement et design unique.
 - **Composants Fondamentaux (MVP) :** Boutons, champs de saisie, menus déroulants, navigation latérale, onglets, composants de chat, panneaux.
+
+### **Composants Universels Implémentés**
+
+L'architecture a évolué vers un système de composants universels réutilisables :
+
+#### **ThreePanelsLayout**
+- **Objectif :** Layout triple panneau réutilisable pour toutes les vues principales
+- **Props :** `leftPanel`, `centerPanel`, `rightPanel`, `layoutConfig`
+- **Utilisation :** Pages Context, Documentation, Issues
+
+#### **UniversalTreePanel**
+- **Objectif :** Navigation arborescente universelle avec support CRUD
+- **Fonctionnalités :** Drag & drop, édition inline, recherche, sélection multiple
+- **Utilisation :** Navigation des fichiers, structure de documentation
+
+#### **UniversalContentPanel**
+- **Objectif :** Affichage et édition de contenu avec support multi-mode
+- **Modes :** Monaco Editor (code), TipTap Editor (markdown), Vue diff
+- **Utilisation :** Affichage de fichiers, édition de documentation
+
+#### **UniversalChatPanel**
+- **Objectif :** Interface de chat avec agents IA spécialisés
+- **Fonctionnalités :** Streaming, historique, agents contextuels, markdown
+- **Utilisation :** Chat avec agents analysis/documentation
+
+#### **RichTextEditor (TipTap)**
+- **Objectif :** Éditeur markdown riche pour la documentation
+- **Fonctionnalités :** Auto-sauvegarde, extensions markdown, thème sombre
+- **Utilisation :** Édition de documentation personnalisée
 
 ## **6. Branding & Guide de Style**
 
@@ -162,7 +212,33 @@ graph TD
 - **Objectifs :** First Contentful Paint < 1.8s, Interaction to Next Paint < 100ms.
 - **Stratégies :** Optimisation des images, chargement progressif avec des "squelettes", découpage du code par route, mise en cache.
 
-## **11. Prochaines Étapes**
+## **11. État d'Implémentation Actuel**
 
-1. **Maquettes Haute-Fidélité :** Créer les maquettes visuelles détaillées dans Figma.
-2. **Passage à l'Architecte :** Transmettre ce document et le PRD à l'agent **Architecte** pour la conception de l'architecture technique.
+### **Pages Implémentées ✅**
+
+- **Page de Connexion :** Interface OAuth GitHub avec Supabase Auth
+- **Page des Dépôts :** Listing des repositories avec authentification
+- **Page Context :** Vue triple panneau avec exploration de codebase
+- **Page Documentation :** Éditeur TipTap avec structure personnalisée
+- **Page Issues :** Workflow de génération de tâches (placeholder fonctionnel)
+
+### **Composants Universels ✅**
+
+- **ThreePanelsLayout :** Layout réutilisable pour toutes les vues
+- **UniversalTreePanel :** Navigation arborescente avec React Arborist
+- **UniversalContentPanel :** Affichage multi-mode (Monaco/TipTap)
+- **UniversalChatPanel :** Chat avec agents IA (en développement)
+
+### **Fonctionnalités Implémentées ✅**
+
+- **Authentification OAuth GitHub :** Intégration complète avec Supabase
+- **Analyse de Codebase :** API GitHub Trees pour exploration
+- **Documentation Personnalisée :** CRUD complet avec TipTap
+- **Architecture Universelle :** Refactorisation et nettoyage des composants
+
+## **12. Prochaines Étapes**
+
+1. **Finalisation du Chat IA :** Compléter l'intégration Claude Code SDK
+2. **Workflow de Génération de Tâches :** Implémenter la logique métier complète
+3. **Tests et Optimisations :** Couverture de tests et optimisations de performance
+4. **Documentation Utilisateur :** Guides d'utilisation et tutoriels

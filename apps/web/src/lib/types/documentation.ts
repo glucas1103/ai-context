@@ -97,3 +97,17 @@ export interface ChatPanelProps {
   isLoading?: boolean;
   placeholder?: string;
 }
+
+// Types pour les modales de création
+export interface CreateModalState {
+  isOpen: boolean;
+  type: 'folder' | 'file' | null;
+  parentId?: string;
+}
+
+export interface DocumentationModalsProps {
+  createModal: CreateModalState;
+  onCreateFolder: (name: string, parentId?: string) => Promise<void>;
+  onCreateFile: (name: string, parentId?: string) => Promise<void>;
+  onClose: () => void;
+}

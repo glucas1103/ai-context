@@ -39,7 +39,7 @@ export async function PUT(
     // Vérifier que l'élément existe et est un fichier
     const { data: item, error: itemError } = await supabase
       .from('custom_documentation')
-      .select('id, type, name')
+      .select('id, type, name, metadata')
       .eq('id', itemId)
       .eq('workspace_id', workspaceId)
       .single();

@@ -4,11 +4,12 @@ import { CreateDocumentationItemRequest, DocumentationApiResponse, Documentation
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const workspaceId = params.id;
+    const resolvedParams = await params;
+    const workspaceId = resolvedParams.id;
 
     // Vérifier l'authentification
     const { data: { user }, error: authError } = await supabase.auth.getUser();

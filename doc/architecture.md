@@ -14,7 +14,7 @@ N/A - Il s'agit d'un projet Greenfield.
 
 ## Résumé Technique
 
-L'architecture est conçue comme une application web moderne, serverless, et hébergée sur Vercel. Elle utilise un monorepo contenant une application front-end Next.js (React/TypeScript) et une logique back-end implémentée via les API Routes de Next.js. L'authentification et la base de données sont gérées par **Supabase**, offrant une solution BaaS (Backend as a Service) robuste et intégrée. Les interactions avec l'IA seront structurées via **LangChainJS** pour garantir des réponses contextuellement pertinentes.
+L'architecture est conçue comme une application web moderne, serverless, et hébergée sur Vercel. Elle utilise un monorepo contenant une application front-end Next.js (React/TypeScript) et une logique back-end implémentée via les API Routes de Next.js. L'authentification et la base de données sont gérées par **Supabase**, offrant une solution BaaS (Backend as a Service) robuste et intégrée. Les interactions avec l'IA sont structurées via **Claude Code SDK** pour garantir des investigations autonomes et contextuellement pertinentes de la codebase.
 
 ## Plateforme et Infrastructure
 
@@ -45,21 +45,21 @@ graph TD
 
     subgraph "Services Externes"
         E[API GitHub/VCS]
-        F[Modèles IA (ex: OpenAI/Google)]
+        F[Claude Code SDK]
     end
 
     A -- "Appels API" --> B;
     A -- "Auth" --> G;
     B -- "Accès Données" --> C;
     B -- "Analyse de code" --> E;
-    B -- "Génération de tâches" --> F;
+    B -- "Investigation IA" --> F;
 ```
 
 ## Patrons d'Architecture
 
 - **Architecture Serverless :** Toute la logique back-end s'exécute dans des fonctions à la demande, éliminant la gestion de serveurs.
 - **Backend as a Service (BaaS) :** Utilisation de Supabase pour déléguer la gestion de la base de données et de l'authentification.
-- **Retrieval Augmented Generation (RAG) :** Utilisation de LangChainJS pour créer des chaînes qui récupèrent du contexte avant d'interroger le modèle d'IA.
+- **Investigation Autonome de Code :** Utilisation de Claude Code SDK pour permettre aux agents IA d'explorer automatiquement la codebase et de fournir des réponses contextuelles.
 - **Monorepo :** Le code front-end, back-end et partagé coexistent dans un seul dépôt pour une meilleure cohérence.
 
 ---
@@ -73,7 +73,7 @@ graph TD
 | Style                | Tailwind CSS            | ~3.4       | Style de l'interface                      | Approche "utility-first" pour un développement rapide et un design personnalisé.       |
 | Bibliothèque UI      | Shadcn/UI               | ~0.8       | Composants de base                        | Bibliothèque de composants accessibles et personnalisables, basée sur Tailwind.        |
 | Gestion de l'État    | Zustand                 | ~4.5       | Gestion de l'état global du client        | Léger, simple et performant. Évite les re-renders inutiles de React Context.           |
-| **Orchestration IA** | **LangChainJS**         | **Latest** | **Structurer les interactions avec l'IA** | **Fournit des patrons robustes (Retrieval Chains) pour créer des IA contextuelles.**   |
+| **Orchestration IA** | **Claude Code SDK**     | **Latest** | **Investigation autonome de code**        | **Fournit des outils natifs (Read, Grep, Glob, LS) pour l'analyse de codebase.**       |
 | Base de Données      | **Supabase (Postgres)** | N/A        | Stockage persistant de la connaissance    | Solution BaaS complète avec une base de données SQL robuste et des API auto-générées.  |
 | Déploiement          | Vercel                  | N/A        | Hébergement et CI/CD                      | Plateforme optimisée pour Next.js, déploiement continu intégré.                        |
 | Authentification     | **Supabase Auth**       | N/A        | Gestion des utilisateurs                  | Solution intégrée à la base de données, gère l'OAuth avec GitHub de manière sécurisée. |
@@ -104,6 +104,21 @@ graph TD
 - **Objectif :** Représente un fichier `.md` dans la base de connaissances.
 - **Attributs :** `id`, `path`, `content`, `baseId`.
 
+## CustomDocumentation
+
+- **Objectif :** Représente la documentation personnalisée créée par l'utilisateur.
+- **Attributs :** `id`, `workspaceId`, `parentId`, `name`, `type` ('folder'|'file'), `path`, `content`, `metadata`, `orderIndex`.
+
+## ChatSession
+
+- **Objectif :** Représente une session de conversation avec un agent IA.
+- **Attributs :** `id`, `userId`, `agentId` ('analysis'|'documentation'), `title`, `context` (JSON), `createdAt`, `updatedAt`.
+
+## ChatMessage
+
+- **Objectif :** Représente un message dans une session de chat.
+- **Attributs :** `id`, `sessionId`, `role` ('user'|'assistant'|'system'), `content`, `metadata` (JSON), `createdAt`.
+
 ## UserStory
 
 - **Objectif :** Représente la spécification logique générée à partir d'un brief.
@@ -123,45 +138,70 @@ graph TD
 
 # 5. Spécification de l'API (API Routes Next.js)
 
-L'API sera exposée via les API Routes de Next.js. La structure des routes suivra les meilleures pratiques REST.
+L'API sera exposée via les API Routes de Next.js. La structure des routes suit les meilleures pratiques REST.
 
-- `POST /api/workspaces` : Connecter un nouveau dépôt Git.
-- `GET /api/workspaces/{id}/analyze` : Lancer l'analyse d'un dépôt.
-- `GET /api/workspaces/{id}/knowledge` : Récupérer la base de connaissances.
-- `POST /api/knowledge/files/{fileId}/enrich` : Enrichir un fichier via le chat IA.
-- `POST /api/tasks/generate` : Générer une user story et des tâches à partir d'un brief.
-- `POST /api/tasks/export` : Exporter le contexte pour les tâches sélectionnées.
-- `POST /api/webhooks/github` : Recevoir les webhooks de GitHub pour les PRs fusionnées.
+## Endpoints d'Authentification
+- `GET /api/auth/callback` : Callback OAuth GitHub
+- `POST /api/auth/signout` : Déconnexion utilisateur
+
+## Endpoints GitHub
+- `GET /api/github/repos` : Récupérer les dépôts GitHub de l'utilisateur
+
+## Endpoints Workspaces
+- `POST /api/workspaces` : Connecter un nouveau dépôt Git
+- `GET /api/workspaces/{id}/analyze` : Lancer l'analyse d'un dépôt
+- `GET /api/workspaces/{id}/knowledge` : Récupérer la base de connaissances
+- `GET /api/workspaces/{id}/context` : Récupérer l'arborescence de contexte
+- `GET /api/workspaces/{id}/context/tree` : Récupérer l'arborescence des fichiers
+- `GET /api/workspaces/{id}/context/file-content` : Récupérer le contenu d'un fichier
+
+## Endpoints Documentation
+- `GET /api/workspaces/{id}/documentation/tree` : Récupérer l'arborescence de documentation
+- `POST /api/workspaces/{id}/documentation/folders` : Créer un dossier de documentation
+- `POST /api/workspaces/{id}/documentation/files` : Créer un fichier de documentation
+- `PUT /api/workspaces/{id}/documentation/{itemId}` : Renommer/déplacer un élément
+- `PUT /api/workspaces/{id}/documentation/{itemId}/content` : Sauvegarder le contenu
+- `DELETE /api/workspaces/{id}/documentation/{itemId}` : Supprimer un élément
+- `GET /api/workspaces/{id}/documentation/{itemId}/content` : Récupérer le contenu
+
+## Endpoints Chat
+- `POST /api/workspaces/{id}/chat/message` : Envoyer un message à l'agent
+- `GET /api/workspaces/{id}/chat/stream` : Stream des réponses de l'agent
+- `POST /api/workspaces/{id}/chat/configure` : Configurer l'agent
+
+## Endpoints Tâches (Futurs)
+- `POST /api/tasks/generate` : Générer une user story et des tâches à partir d'un brief
+- `POST /api/tasks/export` : Exporter le contexte pour les tâches sélectionnées
+- `POST /api/webhooks/github` : Recevoir les webhooks de GitHub pour les PRs fusionnées
 
 ---
 
 # 6. Core Workflows
 
-## Workflow d'Enrichissement de la Connaissance (avec LangChainJS)
+## Workflow d'Investigation Autonome de Code (avec Claude Code SDK)
 
-Ce workflow détaille la séquence d'événements lorsqu'un utilisateur interagit avec le chat IA pour enrichir un document, en utilisant le patron "Retrieval Chain".
+Ce workflow détaille la séquence d'événements lorsqu'un utilisateur interagit avec un agent IA pour investiguer la codebase, en utilisant les outils natifs de Claude Code SDK.
 
 ```mermaid
 sequenceDiagram
     participant User as Utilisateur (Navigateur)
     participant Frontend as Interface Web (Next.js)
     participant API as API Route (Vercel)
-    participant Retriever as Retriever (LangChainJS)
-    participant VectorStore as Vector Store (Supabase pgvector)
-    participant LLM as Modèle d'IA Externe
+    participant Agent as Agent IA (Claude Code SDK)
+    participant GitHub as API GitHub
+    participant DB as Supabase
 
-    User->>Frontend: Envoie un message: "Ajoute des détails sur X"
-    Frontend->>API: POST /api/knowledge/.../enrich (message)
-    API->>Retriever: 1. Crée un Retriever pour la base de connaissance
-    Retriever->>VectorStore: 2. Cherche les documents pertinents pour "détails sur X"
-    VectorStore-->>Retriever: Retourne les documents pertinents
-    Retriever-->>API: Documents récupérés
-    API->>LLM: 3. Envoie (documents + message) au modèle d'IA
-    LLM-->>API: Retourne le nouveau contenu du fichier
-    API->>VectorStore: 4. Met à jour la base de données et les vecteurs
-    VectorStore-->>API: Confirmation de la sauvegarde
-    API-->>Frontend: Retourne le contenu mis à jour
-    Frontend->>User: Affiche le nouveau contenu dans l'interface
+    User->>Frontend: Envoie un message: "Analyse l'authentification"
+    Frontend->>API: POST /api/workspaces/[id]/chat/message
+    API->>Agent: 1. Crée un agent avec contexte du workspace
+    Agent->>GitHub: 2. Utilise LS pour explorer l'arborescence
+    Agent->>GitHub: 3. Utilise Grep pour chercher "auth"
+    Agent->>GitHub: 4. Utilise Read pour lire les fichiers pertinents
+    GitHub-->>Agent: Retourne les informations de code
+    Agent->>API: 5. Synthétise la réponse avec contexte
+    API->>DB: 6. Sauvegarde la conversation
+    API-->>Frontend: Retourne la réponse enrichie
+    Frontend->>User: Affiche la réponse avec actions d'investigation
 ```
 
 ---
@@ -201,6 +241,42 @@ CREATE TABLE knowledge_files (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Table pour la documentation personnalisée
+CREATE TABLE custom_documentation (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+    parent_id UUID REFERENCES custom_documentation(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('folder', 'file')),
+    path TEXT NOT NULL,
+    content TEXT,
+    metadata JSONB DEFAULT '{}',
+    order_index INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Table pour les sessions de chat
+CREATE TABLE chat_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    agent_id TEXT NOT NULL, -- 'analysis' | 'documentation'
+    title TEXT,
+    context JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Table pour les messages de chat
+CREATE TABLE chat_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    content TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Table pour les User Stories
 CREATE TABLE user_stories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -236,7 +312,7 @@ CREATE TABLE task_context_tasks (
 );
 ```
 
-### Contraintes d’idempotence recommandées
+### Contraintes d'idempotence recommandées
 
 ```sql
 -- Éviter les doublons de workspace par repo (par utilisateur)
@@ -244,10 +320,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS uniq_workspaces_owner_url ON workspaces(owner_
 
 -- Idempotence de la base de connaissance par workspace et branche (stockée dans structure.branch)
 -- Implémentation recommandée: colonne matérielle "branch" au lieu de JSONB pour une contrainte native.
--- À défaut (JSON), gérer l’unicité côté application (sélection + insert conditionnel).
+-- À défaut (JSON), gérer l'unicité côté application (sélection + insert conditionnel).
 
 -- Éviter les doublons de fichiers par base
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_knowledge_files_base_path ON knowledge_files(knowledge_base_id, path);
+
+-- Index pour les performances de la documentation personnalisée
+CREATE INDEX IF NOT EXISTS idx_custom_doc_workspace ON custom_documentation(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_custom_doc_parent ON custom_documentation(parent_id);
+
+-- Index pour les performances des sessions de chat
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user ON chat_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id);
 ```
 
 ---
@@ -265,16 +349,32 @@ Cette arborescence de fichiers représente la structure de notre monorepo, gér�
 |       |   |   |-- /page.tsx        # Accueil
 |       |   |   |-- /login/page.tsx
 |       |   |   |-- /repos/page.tsx
+|       |   |   |-- /workspaces/[id]/
+|       |   |       |-- /context/page.tsx
+|       |   |       |-- /documentation/page.tsx
+|       |   |       |-- /issues/page.tsx
+|       |   |       |-- layout.tsx
 |       |   |-- /api                 # Endpoints REST (serverless)
 |       |   |   |-- /github/repos/route.ts
 |       |   |   |-- /workspaces/[id]/analyze/route.ts
+|       |   |   |-- /workspaces/[id]/context/route.ts
+|       |   |   |-- /workspaces/[id]/documentation/route.ts
+|       |   |   |-- /workspaces/[id]/chat/route.ts
 |       |   |-- /auth                # Handlers techniques (callback/persist/signout)
 |       |       |-- /callback/route.ts
-|       |       |-- /persist/route.ts
 |       |       |-- /signout/route.ts
+|       |-- /components
+|       |   |-- /universal           # Composants universels
+|       |   |   |-- ThreePanelsLayout.tsx
+|       |   |   |-- UniversalTreePanel.tsx
+|       |   |   |-- UniversalContentPanel.tsx
+|       |   |   |-- UniversalChatPanel.tsx
+|       |   |-- RichTextEditor.tsx   # Éditeur TipTap
 |       |-- /lib
 |       |   |-- /supabase            # Clients Supabase (SSR/Browser)
 |       |   |-- /server              # Intégrations server-only (ex: github.ts)
+|       |   |-- /services            # Services Claude Code SDK
+|       |   |-- /agents              # Agents IA spécialisés
 |       |   |-- errors.ts            # Helper de réponses d'erreurs JSON
 |       |-- /stores                  # Stores Zustand (si utilisé)
 |       |-- next.config.ts
@@ -289,8 +389,9 @@ Cette arborescence de fichiers représente la structure de notre monorepo, gér�
 
 Notes:
 
-- Les handlers `route.ts` peuvent vivre hors de `/api` (ex: `/auth/callback/route.ts`) quand l’URL métier l’exige. Les endpoints REST génériques sont regroupés sous `/app/api`.
-- Les intégrations externes et utilitaires server-only résident sous `/lib/server` afin d’être réutilisables par plusieurs routes et Server Components.
+- Les handlers `route.ts` peuvent vivre hors de `/api` (ex: `/auth/callback/route.ts`) quand l'URL métier l'exige. Les endpoints REST génériques sont regroupés sous `/app/api`.
+- Les intégrations externes et utilitaires server-only résident sous `/lib/server` afin d'être réutilisables par plusieurs routes et Server Components.
+- Les composants universels sous `/components/universal` fournissent une architecture réutilisable pour les interfaces à triple panneau.
 
 ---
 
@@ -317,7 +418,7 @@ Notes:
 
 3.  **Variables d'Environnement :**
     - Créer un fichier `.env.local` dans `/apps/web`.
-    - Y ajouter les clés Supabase, GitHub et OpenAI :
+    - Y ajouter les clés Supabase, GitHub et Claude :
 
     ```env
     # Supabase
@@ -328,8 +429,8 @@ Notes:
     GITHUB_CLIENT_ID=...
     GITHUB_CLIENT_SECRET=...
 
-    # OpenAI (ou autre fournisseur de LLM)
-    OPENAI_API_KEY=...
+    # Claude (Anthropic)
+    ANTHROPIC_API_KEY=...
     ```
 
 ### Commandes de Développement
@@ -355,7 +456,7 @@ npm run lint
 
 - **Authentification :** L'authentification sera gérée par Supabase Auth, en utilisant des cookies HttpOnly sécurisés pour stocker les sessions. Le Row Level Security (RLS) de Supabase sera activé sur toutes les tables pour s'assurer que les utilisateurs ne peuvent accéder qu'à leurs propres données.
 - **Validation des Entrées :** Toutes les entrées des API Routes seront validées côté serveur en utilisant une bibliothèque comme Zod pour prévenir les injections.
-- **Gestion des Secrets :** Toutes les clés d'API (Supabase, GitHub, OpenAI) seront stockées en tant que variables d'environnement sur Vercel et ne seront jamais exposées côté client.
+- **Gestion des Secrets :** Toutes les clés d'API (Supabase, GitHub, Claude) seront stockées en tant que variables d'environnement sur Vercel et ne seront jamais exposées côté client.
 - **Politiques de Contenu (CSP) :** Des en-têtes de sécurité stricts, y compris une Content Security Policy, seront configurés dans Next.js pour réduire les risques d'attaques XSS.
 
 ## Optimisation des Performances
@@ -468,12 +569,20 @@ L'application Next.js suit la structure de l'App Router avec un segment group d�
     /page.tsx           # Accueil
     /login/page.tsx
     /repos/page.tsx
+    /workspaces/[id]/   # Workspace spécifique
+      /context/page.tsx
+      /documentation/page.tsx
+      /issues/page.tsx
+      /layout.tsx
   /api                  # API Routes (Back-end)
   /auth                 # Handlers auth techniques (callback/persist/signout)
   /components           # Composants UI partagés (Shadcn)
+    /universal          # Composants universels
   /lib                  # Utilitaires, clients API (SSR/Browser), intégrations server-only
     /supabase/{client,server}.ts
     /server/github.ts
+    /services/claude.ts
+    /agents/
     errors.ts
   /hooks                # Hooks React personnalisés
   /stores               # Stores Zustand pour l'état global
@@ -492,10 +601,10 @@ Nous utiliserons **Zustand** pour gérer l'état global de l'application (ex: se
 
 # 15. Architecture Back-end (API Routes)
 
-La logique back-end est exposée via des `route.ts` sous `/app`. Les endpoints REST sont regroupés sous `/app/api`, tandis que certains handlers techniques peuvent exister hors `/api` pour des raisons d’URL (ex: `/auth/callback`).
+La logique back-end est exposée via des `route.ts` sous `/app`. Les endpoints REST sont regroupés sous `/app/api`, tandis que certains handlers techniques peuvent exister hors `/api` pour des raisons d'URL (ex: `/auth/callback`).
 
-- **Analyse du Code :** Orchestrée par les routes `app/api/workspaces/[id]/analyze/route.ts` s’appuyant sur `lib/server/github.ts`.
-- **Interaction IA :** Un service centralisé, utilisant **LangChainJS**, gérera les chaînes de récupération et les appels aux modèles de langage.
+- **Analyse du Code :** Orchestrée par les routes `app/api/workspaces/[id]/analyze/route.ts` s'appuyant sur `lib/server/github.ts`.
+- **Interaction IA :** Un service centralisé, utilisant **Claude Code SDK**, gérera les agents d'investigation et les appels aux modèles de langage.
 - **Intégration Git :** Les appels GitHub (trees, refs, metadata) sont implémentés dans `app/lib/server/github.ts`.
 - **Erreurs API :** Les réponses JSON standardisées utilisent `app/lib/errors.ts`.
 

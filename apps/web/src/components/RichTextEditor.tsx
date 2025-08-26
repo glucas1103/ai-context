@@ -3,12 +3,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Heading } from '@tiptap/extension-heading';
-import { Bold } from '@tiptap/extension-bold';
-import { Italic } from '@tiptap/extension-italic';
-import { ListItem } from '@tiptap/extension-list-item';
-import { Blockquote } from '@tiptap/extension-blockquote';
-import { CodeBlock } from '@tiptap/extension-code-block';
 import { Link } from '@tiptap/extension-link';
 import { Image } from '@tiptap/extension-image';
 import { TipTapEditorProps } from '@/lib/types/documentation';
@@ -25,15 +19,13 @@ const RichTextEditor: React.FC<TipTapEditorProps> = ({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Heading.configure({
-        levels: [1, 2, 3, 4, 5, 6]
+      StarterKit.configure({
+        // Configure les extensions intégrées
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6]
+        },
+        link: false, // Désactiver le link du StarterKit pour utiliser notre config custom
       }),
-      Bold,
-      Italic,
-      ListItem,
-      Blockquote,
-      CodeBlock,
       Link.configure({
         openOnClick: false,
       }),
