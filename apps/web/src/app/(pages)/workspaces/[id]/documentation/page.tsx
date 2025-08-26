@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import DocumentationTree from '@/components/DocumentationTree';
-import RichTextEditor from '@/components/RichTextEditor';
-import ChatPanel from '@/components/ChatPanel';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import DocumentationTreePanel from '@/components/documentation/DocumentationTreePanel';
+import DocumentationContentPanel from '@/components/documentation/DocumentationContentPanel';
+import DocumentationChatPanel from '@/components/documentation/DocumentationChatPanel';
 import { DocumentationNode, ChatMessage, DocumentationApiResponse } from '@/lib/types/documentation';
 
 interface DocumentationPageProps {
@@ -26,11 +27,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [createModal, setCreateModal] = useState<{
-    isOpen: boolean;
-    type: 'folder' | 'file' | null;
-    parentId?: string;
-  }>({ isOpen: false, type: null });
+
 
   const workspaceId = resolvedParams?.id;
 
@@ -113,168 +110,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
     }
   }, [workspaceId]);
 
-  // Créer un dossier
-  const createFolder = useCallback(async (parentId?: string) => {
-    setCreateModal({ isOpen: true, type: 'folder', parentId });
-  }, []);
 
-  // Créer un dossier avec nom
-  const doCreateFolder = useCallback(async (name: string, parentId?: string) => {
-    try {
-      const response = await fetch(`/api/workspaces/${workspaceId}/documentation/folders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          type: 'folder',
-          parent_id: parentId,
-        }),
-      });
-
-      const result: DocumentationApiResponse<DocumentationNode> = await response.json();
-      
-      if (result.success) {
-        await loadDocumentationTree(); // Recharger l'arborescence
-        setCreateModal({ isOpen: false, type: null });
-      } else {
-        setError(result.error?.message || 'Erreur lors de la création du dossier');
-      }
-    } catch (error) {
-      console.error('Error creating folder:', error);
-      setError('Erreur de connexion');
-    }
-  }, [workspaceId, loadDocumentationTree]);
-
-  // Créer un fichier
-  const createFile = useCallback(async (parentId?: string) => {
-    setCreateModal({ isOpen: true, type: 'file', parentId });
-  }, []);
-
-  // Créer un fichier avec nom
-  const doCreateFile = useCallback(async (name: string, parentId?: string) => {
-    try {
-      const response = await fetch(`/api/workspaces/${workspaceId}/documentation/files`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          type: 'file',
-          parent_id: parentId,
-          fileExtension: 'md',
-        }),
-      });
-
-      const result: DocumentationApiResponse<DocumentationNode> = await response.json();
-      
-      if (result.success) {
-        await loadDocumentationTree(); // Recharger l'arborescence
-        setCreateModal({ isOpen: false, type: null });
-        // Sélectionner le nouveau fichier automatiquement
-        if (result.data) {
-          setSelectedFile(result.data);
-          await loadFileContent(result.data.id);
-        }
-      } else {
-        setError(result.error?.message || 'Erreur lors de la création du fichier');
-      }
-    } catch (error) {
-      console.error('Error creating file:', error);
-      setError('Erreur de connexion');
-    }
-  }, [workspaceId, loadDocumentationTree, loadFileContent]);
-
-  // Renommer un élément
-  const renameItem = useCallback(async (id: string, newName: string) => {
-    try {
-      const response = await fetch(`/api/workspaces/${workspaceId}/documentation/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: newName,
-        }),
-      });
-
-      const result: DocumentationApiResponse<DocumentationNode> = await response.json();
-      
-      if (result.success) {
-        await loadDocumentationTree(); // Recharger l'arborescence
-        // Mettre à jour le fichier sélectionné si c'est celui qui a été renommé
-        if (selectedFile && selectedFile.id === id && result.data) {
-          setSelectedFile(result.data);
-        }
-      } else {
-        setError(result.error?.message || 'Erreur lors du renommage');
-      }
-    } catch (error) {
-      console.error('Error renaming item:', error);
-      setError('Erreur de connexion');
-    }
-  }, [workspaceId, loadDocumentationTree, selectedFile]);
-
-  // Supprimer un élément
-  const deleteItem = useCallback(async (id: string) => {
-    try {
-      const response = await fetch(`/api/workspaces/${workspaceId}/documentation/${id}`, {
-        method: 'DELETE',
-      });
-
-      const result: DocumentationApiResponse = await response.json();
-      
-      if (result.success) {
-        await loadDocumentationTree(); // Recharger l'arborescence
-        // Désélectionner le fichier si c'est celui qui a été supprimé
-        if (selectedFile && selectedFile.id === id) {
-          setSelectedFile(null);
-          setFileContent('');
-        }
-      } else {
-        setError(result.error?.message || 'Erreur lors de la suppression');
-      }
-    } catch (error) {
-      console.error('Error deleting item:', error);
-      setError('Erreur de connexion');
-    }
-  }, [workspaceId, loadDocumentationTree, selectedFile]);
-
-  // Déplacer des éléments
-  const moveItems = useCallback(async (dragIds: string[], parentId?: string, index?: number) => {
-    try {
-      console.log('Moving items:', { dragIds, parentId, index });
-      
-      // Déplacer chaque élément
-      for (const dragId of dragIds) {
-        const response = await fetch(`/api/workspaces/${workspaceId}/documentation/${dragId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            parent_id: parentId,
-            order_index: index,
-          }),
-        });
-
-        const result: DocumentationApiResponse<DocumentationNode> = await response.json();
-        
-        if (!result.success) {
-          setError(result.error?.message || 'Erreur lors du déplacement');
-          return;
-        }
-      }
-      
-      // Recharger l'arborescence après le déplacement
-      await loadDocumentationTree();
-    } catch (error) {
-      console.error('Error moving items:', error);
-      setError('Erreur de connexion lors du déplacement');
-    }
-  }, [workspaceId, loadDocumentationTree]);
 
   // Sélectionner un fichier
   const handleSelectFile = useCallback(async (node: DocumentationNode | null) => {
@@ -285,6 +121,11 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
       setFileContent('');
     }
   }, [loadFileContent]);
+
+  // Gérer les erreurs depuis les panels enfants
+  const handleError = useCallback((errorMessage: string) => {
+    setError(errorMessage);
+  }, []);
 
   // Gérer les changements de contenu
   const handleContentChange = useCallback((content: string) => {
@@ -333,95 +174,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
   // Fermer les notifications d'erreur
   const clearError = () => setError(null);
 
-  // Composant de modale pour créer un élément
-  const CreateItemModal = () => {
-    const [name, setName] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!name.trim()) return;
-
-      setIsSubmitting(true);
-      try {
-        if (createModal.type === 'folder') {
-          await doCreateFolder(name.trim(), createModal.parentId);
-        } else if (createModal.type === 'file') {
-          await doCreateFile(name.trim(), createModal.parentId);
-        }
-      } finally {
-        setIsSubmitting(false);
-        setName('');
-      }
-    };
-
-    const handleClose = () => {
-      setCreateModal({ isOpen: false, type: null });
-      setName('');
-    };
-
-    if (!createModal.isOpen) return null;
-
-    const isFolder = createModal.type === 'folder';
-    const title = isFolder ? 'Nouveau Dossier' : 'Nouveau Fichier';
-    const placeholder = isFolder ? 'Nom du dossier...' : 'Nom du fichier (sans extension)...';
-    const icon = isFolder ? '📁' : '📄';
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 shadow-xl">
-          <div className="flex items-center space-x-3 mb-4">
-            <span className="text-2xl">{icon}</span>
-            <h2 className="text-xl font-semibold text-white">{title}</h2>
-          </div>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                Nom
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={placeholder}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                autoFocus
-                disabled={isSubmitting}
-              />
-              {!isFolder && (
-                <p className="text-xs text-gray-400 mt-1">
-                  L'extension .md sera automatiquement ajoutée
-                </p>
-              )}
-            </div>
-            
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className="px-4 py-2 text-gray-300 hover:text-white transition-colors disabled:opacity-50"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                disabled={!name.trim() || isSubmitting}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {isSubmitting && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                )}
-                <span>{isSubmitting ? 'Création...' : 'Créer'}</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
 
   if (isLoading || !resolvedParams) {
     return (
@@ -468,73 +221,51 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
       )}
 
       {/* Interface principale à trois panneaux */}
-      <div className="flex-1 p-4 overflow-hidden">
-        <div className="h-full flex gap-4">
-          {/* Panneau de navigation (gauche) */}
-          <div className="w-1/4 min-w-[300px] max-w-[400px] h-full">
-            <DocumentationTree
+      <div className="flex-1 overflow-hidden">
+        <PanelGroup direction="horizontal" className="h-full">
+          {/* Panel de navigation (gauche) */}
+          <Panel defaultSize={25} minSize={15} maxSize={40}>
+            <DocumentationTreePanel
               data={treeData}
-              onSelect={handleSelectFile}
               selectedId={selectedFile?.id}
-              onCreateFolder={createFolder}
-              onCreateFile={createFile}
-              onRename={renameItem}
-              onDelete={deleteItem}
-              onMove={moveItems}
-              className="h-full"
+              onSelect={handleSelectFile}
+              workspaceId={workspaceId!}
+              onTreeUpdate={loadDocumentationTree}
+              isLoading={isLoading}
+              onError={handleError}
             />
-          </div>
+          </Panel>
 
-          {/* Panneau central (éditeur) */}
-          <div className="flex-1 min-w-[400px] h-full">
-            <div className="h-full bg-gray-900 rounded-lg">
-              {selectedFile ? (
-                selectedFile.type === 'file' ? (
-                  <RichTextEditor
-                    content={fileContent}
-                    onChange={handleContentChange}
-                    onAutoSave={handleAutoSave}
-                    placeholder={`Commencez à écrire dans ${selectedFile.name}...`}
-                  />
-                ) : (
-                  <div className="h-full flex items-center justify-center text-gray-500">
-                    <div className="text-center">
-                      <div className="text-6xl mb-4">📁</div>
-                      <p className="text-lg">Dossier sélectionné</p>
-                      <p className="text-sm">
-                        Sélectionnez un fichier pour l'éditer ou créez-en un nouveau.
-                      </p>
-                    </div>
-                  </div>
-                )
-              ) : (
-                <div className="h-full flex items-center justify-center text-gray-500">
-                  <div className="text-center">
-                    <div className="text-6xl mb-4">📝</div>
-                    <p className="text-lg">Aucun fichier sélectionné</p>
-                    <p className="text-sm">
-                      Sélectionnez un fichier dans l'arborescence pour commencer à l'éditer.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-gray-600 transition-colors" />
 
-          {/* Panneau de chat (droite) */}
-          <div className="w-1/4 min-w-[300px] max-w-[400px] h-full">
-            <ChatPanel
+          {/* Panel central (éditeur) */}
+          <Panel defaultSize={50} minSize={30}>
+            <DocumentationContentPanel
+              selectedFile={selectedFile}
+              content={fileContent}
+              onChange={handleContentChange}
+              onAutoSave={handleAutoSave}
+              isLoading={isLoading}
+              isSaving={isSaving}
+            />
+          </Panel>
+
+          <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-gray-600 transition-colors" />
+
+          {/* Panel de chat (droite) */}
+          <Panel defaultSize={25} minSize={15} maxSize={40}>
+            <DocumentationChatPanel
+              selectedFile={selectedFile}
               onSendMessage={handleSendMessage}
               messages={messages}
               isLoading={isChatLoading}
-              placeholder="Demandez de l'aide pour enrichir votre documentation..."
+              workspaceId={workspaceId!}
             />
-          </div>
-        </div>
+          </Panel>
+        </PanelGroup>
       </div>
 
-      {/* Modale de création */}
-      <CreateItemModal />
+
     </div>
   );
 };

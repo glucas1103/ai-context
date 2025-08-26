@@ -1,22 +1,23 @@
-export interface DocumentationNode {
-  id: string;
-  name: string;
+import { TreeNodeBase } from './common';
+
+export interface DocumentationNode extends TreeNodeBase {
   type: 'folder' | 'file';
-  path: string; // chemin virtuel (ex: "/architecture/database.md")
   content?: string; // pour fichiers .md, .doc, etc.
   fileExtension?: string; // extension du fichier (.md, .doc, etc.)
   parent_id?: string;
   children?: DocumentationNode[];
-  metadata?: {
-    created_by: string;
-    description?: string;
-    tags?: string[];
-    last_edited?: string;
-    mimeType?: string; // pour différencier les types de fichiers
-  };
+  metadata?: DocumentationMetadata;
   order_index: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface DocumentationMetadata {
+  created_by: string;
+  description?: string;
+  tags?: string[];
+  last_edited?: string;
+  mimeType?: string; // pour différencier les types de fichiers
 }
 
 export interface DocumentationState {
