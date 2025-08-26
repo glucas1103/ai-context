@@ -1,5 +1,5 @@
 // Types centralisés pour le contexte des workspaces
-import { TreeNodeBase } from './common'
+import { TreeNodeBase } from '../common'
 
 export interface FileTreeNode {
   id: string;
