@@ -1,10 +1,12 @@
+import { ROUTES } from "@/constants/routes";
+import { API_ENDPOINTS } from "@/constants/api";
 import { NextRequest } from 'next/server'
 import { POST } from '../route'
 import { createClient } from '@/lib/supabase/server'
 
 // Mock des dépendances
 jest.mock('@/lib/supabase/server')
-jest.mock('@/lib/errors')
+jest.mock('@/utils/api')
 
 const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>
 

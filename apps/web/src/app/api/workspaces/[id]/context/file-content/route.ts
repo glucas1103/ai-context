@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse, NextRequest } from 'next/server'
-import { createErrorResponse, handleApiError } from '@/lib/errors'
+import { createErrorResponse, handleApiError } from '@/utils/api'
 import { GitHubAPI, parseGitHubUrl } from '@/lib/server/github'
 
 export async function GET(

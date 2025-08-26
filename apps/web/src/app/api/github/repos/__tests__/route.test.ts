@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "@/constants/api";
 import { NextRequest } from 'next/server'
 import { GET } from '../route'
 import { createClient } from '@/lib/supabase/server'

@@ -1,3 +1,7 @@
+import { ROUTES } from "@/constants/routes";
+import { API_ENDPOINTS } from "@/constants/api";
+import { apiClient } from "@/utils/api";
+import { formatDate, formatFileSize } from "@/utils/formatting";
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -59,20 +63,18 @@ export default function ReposPage() {
       try {
 
         // Charger les dépôts
-        const response = await fetch('/api/github/repos')
+        const response = await apiClient.get<ReposResponse>(API_ENDPOINTS.GITHUB_REPOS)
         
-        if (!response.ok) {
+        if (!response.success) {
           if (response.status === 401) {
-            router.replace('/login')
+            router.replace(ROUTES.LOGIN)
             return
           }
           
-          const errorData = await response.json()
-          throw new Error(errorData.error?.message || 'Erreur lors du chargement des dépôts')
+          throw new Error(response.error || 'Erreur lors du chargement des dépôts')
         }
 
-        const data: ReposResponse = await response.json()
-        setRepos(data.repos)
+        setRepos(response.data!.repos)
         
       } catch (err) {
         console.error('Erreur lors du chargement:', err)
@@ -97,40 +99,28 @@ export default function ReposPage() {
 
     try {
       // 1. Créer ou récupérer le workspace
-      const workspaceResponse = await fetch('/api/workspaces', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: repo.name,
-          url: repo.url,
-        }),
+      const workspaceResponse = await apiClient.post<{ id: string }>(API_ENDPOINTS.WORKSPACES, {
+        name: repo.name,
+        url: repo.url,
       })
 
-      if (!workspaceResponse.ok) {
-        const errorData = await workspaceResponse.json()
-        throw new Error(errorData.error?.message || 'Erreur lors de la création du workspace')
+      if (!workspaceResponse.success) {
+        throw new Error(workspaceResponse.error || 'Erreur lors de la création du workspace')
       }
 
-      const workspaceData = await workspaceResponse.json()
-      const workspaceId = workspaceData.data.id
+      const workspaceId = workspaceResponse.data!.id
 
       // 2. Lancer l'analyse du dépôt
-      const analyzeResponse = await fetch(`/api/workspaces/${workspaceId}/analyze`, {
-        method: 'POST',
-      })
+      const analyzeResponse = await apiClient.post(`${API_ENDPOINTS.WORKSPACES}/${workspaceId}/analyze`)
 
-      if (!analyzeResponse.ok) {
-        const errorData = await analyzeResponse.json()
-        throw new Error(errorData.error?.message || 'Erreur lors de l\'analyse du dépôt')
+      if (!analyzeResponse.success) {
+        throw new Error(analyzeResponse.error || 'Erreur lors de l\'analyse du dépôt')
       }
 
-      const analyzeData = await analyzeResponse.json()
-      console.log('Analysis completed successfully:', analyzeData)
+      console.log('Analysis completed successfully:', analyzeResponse.data)
       
       // 3. Rediriger vers la vue d'exploration de contexte
-      const targetUrl = `/workspaces/${workspaceId}/context`
+      const targetUrl = ROUTES.WORKSPACE_CONTEXT(workspaceId)
       console.log('Redirecting to:', targetUrl)
       router.push(targetUrl)
 
@@ -142,18 +132,7 @@ export default function ReposPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
-  const formatSize = (size: number) => {
-    if (size < 1024) return `${size} KB`
-    return `${(size / 1024).toFixed(1)} MB`
-  }
+  // Les fonctions de formatage sont maintenant importées depuis @/utils/formatting
 
   if (isLoading) {
     return (
@@ -295,7 +274,7 @@ export default function ReposPage() {
                     </svg>
                     {repo.stars}
                   </span>
-                  <span>{formatSize(repo.size)}</span>
+                  <span>{formatFileSize(repo.size * 1024)}</span>
                 </div>
               </div>
 

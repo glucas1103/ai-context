@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "@/constants/api";
 'use client';
 
 import React, { useEffect, useRef } from 'react';

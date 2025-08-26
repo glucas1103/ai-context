@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "@/constants/api";
 import { TreeNodeBase } from '../common';
 import { FileTreeNode } from '../api/workspace';
 import { DocumentationNode, ChatMessage } from '../api/documentation';

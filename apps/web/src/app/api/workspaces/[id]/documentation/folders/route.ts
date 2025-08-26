@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "@/constants/api";
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { CreateDocumentationItemRequest, DocumentationApiResponse, DocumentationNode } from '@/types/api/documentation';

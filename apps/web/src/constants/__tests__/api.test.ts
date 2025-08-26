@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "@/constants/api";
 /**
  * Tests pour les constantes API
  */

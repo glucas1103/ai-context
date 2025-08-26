@@ -1,7 +1,8 @@
+import { API_ENDPOINTS } from "@/constants/api";
 import { createClient } from '@/lib/supabase/server'
 import { FileTreeNode } from '@/types/api/workspace'
 import { NextResponse, NextRequest } from 'next/server'
-import { createErrorResponse, handleApiError } from '@/lib/errors'
+import { createErrorResponse, handleApiError } from '@/utils/api'
 
 export async function POST(
   request: NextRequest,

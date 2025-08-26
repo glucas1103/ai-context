@@ -1,3 +1,4 @@
+import { ROUTES } from "@/constants/routes";
 /**
  * Constantes pour les routes de l'application
  */

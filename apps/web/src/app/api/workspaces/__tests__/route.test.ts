@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "@/constants/api";
 import { POST, GET } from '../route'
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -7,7 +8,7 @@ jest.mock('@/lib/supabase/server')
 const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>
 
 // Mock error utilities
-jest.mock('@/lib/errors', () => ({
+jest.mock('@/utils/api', () => ({
   createErrorResponse: jest.fn((message, code, status) => 
     new Response(JSON.stringify({ error: { message, code } }), { status })
   ),

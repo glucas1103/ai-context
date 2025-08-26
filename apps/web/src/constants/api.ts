@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "@/constants/api";
 /**
  * Constantes pour les API endpoints et méthodes
  */

@@ -1,3 +1,6 @@
+import { ROUTES } from "@/constants/routes";
+import { API_ENDPOINTS } from "@/constants/api";
+import { apiClient } from "@/utils/api";
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -59,11 +62,11 @@ export default function WorkspaceContextPage({
 
       try {
         // Charger les données de l'arborescence
-        const treeResponse = await fetch(`/api/workspaces/${workspaceId}/context/tree`)
+        const treeResponse = await apiClient.get<{ structure: FileTreeNode[] }>(`${API_ENDPOINTS.WORKSPACES}/${workspaceId}/context/tree`)
         
-        if (!treeResponse.ok) {
+        if (!treeResponse.success) {
           if (treeResponse.status === 401) {
-            router.replace('/login')
+            router.replace(ROUTES.LOGIN)
             return
           }
           
@@ -72,18 +75,15 @@ export default function WorkspaceContextPage({
             return
           }
           
-          const errorData = await treeResponse.json()
-          throw new Error(errorData.error?.message || 'Erreur lors du chargement de l&apos;arborescence')
+          throw new Error(treeResponse.error || 'Erreur lors du chargement de l\'arborescence')
         }
 
-        const treeData = await treeResponse.json()
-        setFileTree(treeData.data.structure || [])
+        setFileTree(treeResponse.data!.structure || [])
 
         // Charger les informations du workspace
-        const workspaceResponse = await fetch(`/api/workspaces`)
-        if (workspaceResponse.ok) {
-          const workspacesData = await workspaceResponse.json()
-          const currentWorkspace = workspacesData.data.find((w: WorkspaceData) => w.id === workspaceId)
+        const workspaceResponse = await apiClient.get<WorkspaceData[]>(API_ENDPOINTS.WORKSPACES)
+        if (workspaceResponse.success) {
+          const currentWorkspace = workspaceResponse.data!.find((w: WorkspaceData) => w.id === workspaceId)
           if (currentWorkspace) {
             setWorkspace(currentWorkspace)
           }

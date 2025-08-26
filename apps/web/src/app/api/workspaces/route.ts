@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse, NextRequest } from 'next/server'
-import { createErrorResponse, handleApiError } from '@/lib/errors'
+import { createErrorResponse, handleApiError } from '@/utils/api'
 
 export async function POST(request: NextRequest) {
   try {

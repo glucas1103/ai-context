@@ -156,3 +156,46 @@ export const extractApiData = <T>(response: ApiResponse<T>): T => {
   }
   return response.data!;
 };
+
+/**
+ * Crée une réponse d'erreur standardisée pour les API routes
+ */
+export const createErrorResponse = (
+  message: string,
+  code: string = 'unknown_error',
+  status: number = 500
+) => {
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: {
+        message,
+        code,
+        status
+      }
+    }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+};
+
+/**
+ * Gère les erreurs dans les API routes
+ */
+export const handleApiError = (error: unknown) => {
+  console.error('API Error:', error);
+  
+  if (error instanceof ApiError) {
+    return createErrorResponse(error.message, 'api_error', error.status);
+  }
+  
+  if (error instanceof Error) {
+    return createErrorResponse(error.message, 'internal_error', 500);
+  }
+  
+  return createErrorResponse('Erreur interne du serveur', 'internal_error', 500);
+};
