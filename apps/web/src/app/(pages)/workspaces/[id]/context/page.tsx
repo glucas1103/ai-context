@@ -3,11 +3,16 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { FileTreeNode, WorkspaceData } from '@/lib/types/context'
-import TreeContext from '@/components/TreeContext'
-import FileContext from '@/components/FileContext'
-import ChatContext from '@/components/ChatContext'
+import ThreePanelsLayout from '@/components/universal/ThreePanelsLayout'
+import UniversalTreePanel from '@/components/universal/UniversalTreePanel'
+import UniversalContentPanel from '@/components/universal/UniversalContentPanel'
+import UniversalChatPanel from '@/components/universal/UniversalChatPanel'
+import { 
+  CODE_ICONS, 
+  MONACO_CONFIG, 
+  ANALYSIS_AGENT_CONFIG 
+} from '@/lib/types/universal-components'
 import LoadingScreen from '@/components/LoadingScreen'
 import ErrorScreen from '@/components/ErrorScreen'
 
@@ -24,7 +29,8 @@ export default function WorkspaceContextPage({
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingContent, setIsLoadingContent] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [treeHeight, setTreeHeight] = useState(400)
+  const [messages, setMessages] = useState<any[]>([])
+  const [isChatLoading, setIsChatLoading] = useState(false)
   
   const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
@@ -35,20 +41,6 @@ export default function WorkspaceContextPage({
       setWorkspaceId(id)
     })
   }, [params])
-
-  // Calculer la hauteur de l'arborescence
-  useEffect(() => {
-    const updateTreeHeight = () => {
-      const headerHeight = 64 // hauteur du header
-      const treeHeaderHeight = 80 // hauteur du header de l'arborescence
-      const newHeight = window.innerHeight - headerHeight - treeHeaderHeight
-      setTreeHeight(Math.max(newHeight, 300)) // minimum 300px
-    }
-
-    updateTreeHeight()
-    window.addEventListener('resize', updateTreeHeight)
-    return () => window.removeEventListener('resize', updateTreeHeight)
-  }, [])
 
   // Vérifier l'authentification et charger les données
   useEffect(() => {
@@ -109,8 +101,8 @@ export default function WorkspaceContextPage({
   }, [isAuthenticated, loading, router, workspaceId])
 
   // Charger le contenu d'un fichier sélectionné
-  const loadFileContent = async (file: FileTreeNode) => {
-    if (file.type === 'directory') return
+  const loadFileContent = async (file: FileTreeNode | null) => {
+    if (!file || file.type === 'directory') return
 
     setIsLoadingContent(true)
     setSelectedFile(file)
@@ -134,44 +126,74 @@ export default function WorkspaceContextPage({
     }
   }
 
+  // Gérer les messages du chat
+  const handleSendMessage = async (message: string) => {
+    const userMessage = {
+      id: Date.now().toString(),
+      type: 'user' as const,
+      content: message,
+      timestamp: new Date().toISOString(),
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setIsChatLoading(true)
+
+    // Simuler une réponse de l'IA (à remplacer par l'intégration réelle)
+    setTimeout(() => {
+      const assistantMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant' as const,
+        content: `Analyse du code : "${message}". Cette fonctionnalité sera disponible prochainement avec l'intégration complète de l'IA.`,
+        timestamp: new Date().toISOString(),
+      }
+      setMessages(prev => [...prev, assistantMessage])
+      setIsChatLoading(false)
+    }, 1500)
+  }
+
   if (isLoading) return <LoadingScreen />
   if (error) return <ErrorScreen error={error} />
 
   return (
-    <div className="h-full">
-      <PanelGroup direction="horizontal" className="h-full">
-        {/* Left Panel - Tree Context */}
-        <Panel defaultSize={25} minSize={15} maxSize={40}>
-          <TreeContext
-            fileTree={fileTree}
-            selectedFile={selectedFile}
-            onFileSelect={loadFileContent}
-            isLoading={isLoading}
-            treeHeight={treeHeight}
-          />
-        </Panel>
-
-        <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-gray-600 transition-colors" />
-
-        {/* Center Panel - File Context */}
-        <Panel defaultSize={50} minSize={30}>
-          <FileContext
-            selectedFile={selectedFile}
-            fileContent={fileContent}
-            isLoadingContent={isLoadingContent}
-          />
-        </Panel>
-
-        <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-gray-600 transition-colors" />
-
-        {/* Right Panel - Chat Context */}
-        <Panel defaultSize={25} minSize={15} maxSize={40}>
-          <ChatContext
-            selectedFile={selectedFile}
-            workspace={workspace}
-          />
-        </Panel>
-      </PanelGroup>
-    </div>
+    <ThreePanelsLayout
+      leftPanel={
+        <UniversalTreePanel
+          data={fileTree}
+          mode="readonly"
+          selectedId={selectedFile?.id}
+          onSelect={loadFileContent}
+          config={{
+            title: 'Arborescence',
+            showCount: true,
+            icons: CODE_ICONS
+          }}
+          isLoading={isLoading}
+        />
+      }
+      centerPanel={
+        <UniversalContentPanel
+          selectedItem={selectedFile}
+          content={fileContent}
+          mode="code"
+          editorConfig={MONACO_CONFIG}
+          isLoading={isLoadingContent}
+        />
+      }
+      rightPanel={
+        <UniversalChatPanel
+          agentType="analysis"
+          selectedItem={selectedFile}
+          workspaceId={workspaceId}
+          onSendMessage={handleSendMessage}
+          messages={messages}
+          isLoading={isChatLoading}
+          agentConfig={ANALYSIS_AGENT_CONFIG}
+        />
+      }
+      config={{
+        defaultSizes: [25, 50, 25],
+        persistKey: 'context-layout'
+      }}
+    />
   )
 }

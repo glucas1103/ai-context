@@ -4,12 +4,13 @@ import { UpdateDocumentationContentRequest, DocumentationApiResponse } from '@/l
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const workspaceId = params.id;
-    const itemId = params.itemId;
+    const resolvedParams = await params;
+    const workspaceId = resolvedParams.id;
+    const itemId = resolvedParams.itemId;
 
     // Vérifier l'authentification
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -120,12 +121,13 @@ export async function PUT(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const workspaceId = params.id;
-    const itemId = params.itemId;
+    const resolvedParams = await params;
+    const workspaceId = resolvedParams.id;
+    const itemId = resolvedParams.itemId;
 
     // Vérifier l'authentification
     const { data: { user }, error: authError } = await supabase.auth.getUser();

@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import DocumentationTreePanel from '@/components/documentation/DocumentationTreePanel';
-import DocumentationContentPanel from '@/components/documentation/DocumentationContentPanel';
-import DocumentationChatPanel from '@/components/documentation/DocumentationChatPanel';
+import ThreePanelsLayout from '@/components/universal/ThreePanelsLayout';
+import UniversalTreePanel from '@/components/universal/UniversalTreePanel';
+import UniversalContentPanel from '@/components/universal/UniversalContentPanel';
+import UniversalChatPanel from '@/components/universal/UniversalChatPanel';
+import { 
+  DOC_ICONS, 
+  TIPTAP_CONFIG, 
+  DOCUMENTATION_AGENT_CONFIG 
+} from '@/lib/types/universal-components';
 import { DocumentationNode, ChatMessage, DocumentationApiResponse } from '@/lib/types/documentation';
 
 interface DocumentationPageProps {
@@ -122,7 +127,11 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
     }
   }, [loadFileContent]);
 
-  // Gérer les erreurs depuis les panels enfants
+  // Actions CRUD pour l'arborescence
+  const handleTreeUpdate = useCallback(async () => {
+    await loadDocumentationTree();
+  }, [loadDocumentationTree]);
+
   const handleError = useCallback((errorMessage: string) => {
     setError(errorMessage);
   }, []);
@@ -222,49 +231,53 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
 
       {/* Interface principale à trois panneaux */}
       <div className="flex-1 overflow-hidden">
-        <PanelGroup direction="horizontal" className="h-full">
-          {/* Panel de navigation (gauche) */}
-          <Panel defaultSize={25} minSize={15} maxSize={40}>
-            <DocumentationTreePanel
+        <ThreePanelsLayout
+          leftPanel={
+            <UniversalTreePanel
               data={treeData}
+              mode="editable"
               selectedId={selectedFile?.id}
               onSelect={handleSelectFile}
+              config={{
+                title: 'Documentation',
+                showCount: true,
+                icons: DOC_ICONS
+              }}
               workspaceId={workspaceId!}
-              onTreeUpdate={loadDocumentationTree}
+              onTreeUpdate={handleTreeUpdate}
               isLoading={isLoading}
               onError={handleError}
             />
-          </Panel>
-
-          <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-gray-600 transition-colors" />
-
-          {/* Panel central (éditeur) */}
-          <Panel defaultSize={50} minSize={30}>
-            <DocumentationContentPanel
-              selectedFile={selectedFile}
+          }
+          centerPanel={
+            <UniversalContentPanel
+              selectedItem={selectedFile}
               content={fileContent}
+              mode="document"
               onChange={handleContentChange}
-              onAutoSave={handleAutoSave}
+              onSave={handleAutoSave}
+              editorConfig={TIPTAP_CONFIG}
               isLoading={isLoading}
               isSaving={isSaving}
             />
-          </Panel>
-
-          <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-gray-600 transition-colors" />
-
-          {/* Panel de chat (droite) */}
-          <Panel defaultSize={25} minSize={15} maxSize={40}>
-            <DocumentationChatPanel
-              selectedFile={selectedFile}
+          }
+          rightPanel={
+            <UniversalChatPanel
+              agentType="documentation"
+              selectedItem={selectedFile}
+              workspaceId={workspaceId!}
               onSendMessage={handleSendMessage}
               messages={messages}
               isLoading={isChatLoading}
-              workspaceId={workspaceId!}
+              agentConfig={DOCUMENTATION_AGENT_CONFIG}
             />
-          </Panel>
-        </PanelGroup>
+          }
+          config={{
+            defaultSizes: [25, 50, 25],
+            persistKey: 'documentation-layout'
+          }}
+        />
       </div>
-
 
     </div>
   );
