@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import ThreePanelsLayout from '@/components/universal/ThreePanelsLayout';
-import UniversalTreePanel from '@/components/universal/UniversalTreePanel';
-import UniversalContentPanel from '@/components/universal/UniversalContentPanel';
-import UniversalChatPanel from '@/components/universal/UniversalChatPanel';
+import ThreePanelsLayout from '@/components/layout/ThreePanelsLayout';
+import UniversalTreePanel from '@/components/ui/universal/UniversalTreePanel';
+import UniversalContentPanel from '@/components/ui/universal/UniversalContentPanel';
+import UniversalChatPanel from '@/components/ui/universal/UniversalChatPanel';
 import { 
   DOC_ICONS, 
   TIPTAP_CONFIG, 

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import ChatPanel from '@/components/ChatPanel';
+import ChatPanel from '@/components/workspace/ChatPanel';
 import { 
   UniversalChatPanelProps, 
   AgentType,

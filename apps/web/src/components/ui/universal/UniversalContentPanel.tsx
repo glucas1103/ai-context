@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Editor from '@monaco-editor/react';
-import RichTextEditor from '@/components/RichTextEditor';
+import RichTextEditor from '@/components/documentation/RichTextEditor';
 import { 
   UniversalContentPanelProps, 
   ContentType, 
