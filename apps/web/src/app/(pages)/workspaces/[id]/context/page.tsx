@@ -1,8 +1,8 @@
+'use client'
+
 import { ROUTES } from "@/constants/routes";
 import { API_ENDPOINTS } from "@/constants/api";
 import { apiClient } from "@/utils/api";
-'use client'
-
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
