@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { DocumentationNode, DocumentationApiResponse } from '@/lib/types/documentation';
+import { DocumentationNode, DocumentationApiResponse } from '@/types/api/documentation';
 
 export async function GET(
   request: NextRequest,

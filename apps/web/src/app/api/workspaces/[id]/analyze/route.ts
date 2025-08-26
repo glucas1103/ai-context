@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { FileTreeNode } from '@/lib/types/context'
+import { FileTreeNode } from '@/types/api/workspace'
 import { NextResponse, NextRequest } from 'next/server'
 import { createErrorResponse, handleApiError } from '@/lib/errors'
 

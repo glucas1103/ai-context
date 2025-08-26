@@ -2,11 +2,11 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { Tree, TreeApi, NodeApi } from 'react-arborist';
-import { UniversalTreePanelProps, UniversalTreeNode, PanelMode } from '@/lib/types/universal-components';
-import { TreeNodeBase } from '@/lib/types/common';
-import { FileTreeNode } from '@/lib/types/context';
+import { UniversalTreePanelProps, UniversalTreeNode, PanelMode } from '@/types/components/universal';
+import { TreeNodeBase } from '@/types/common';
+import { FileTreeNode } from '@/types/api/workspace';
 import DocumentationModals from '@/components/documentation/DocumentationModals';
-import { DocumentationApiResponse, DocumentationNode, ArboristNodeData } from '@/lib/types/documentation';
+import { DocumentationApiResponse, DocumentationNode, ArboristNodeData } from '@/types/api/documentation';
 
 interface ContextMenuState {
   visible: boolean;

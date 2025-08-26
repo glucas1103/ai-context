@@ -8,8 +8,8 @@ import {
   ContentType, 
   MonacoConfig, 
   TipTapConfig 
-} from '@/lib/types/universal-components';
-import { TreeNodeBase } from '@/lib/types/common';
+} from '@/types/components/universal';
+import { TreeNodeBase } from '@/types/common';
 
 const UniversalContentPanel: React.FC<UniversalContentPanelProps> = ({
   selectedItem,

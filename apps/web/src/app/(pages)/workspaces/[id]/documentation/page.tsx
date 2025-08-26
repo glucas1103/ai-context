@@ -9,8 +9,8 @@ import {
   DOC_ICONS, 
   TIPTAP_CONFIG, 
   DOCUMENTATION_AGENT_CONFIG 
-} from '@/lib/types/universal-components';
-import { DocumentationNode, ChatMessage, DocumentationApiResponse } from '@/lib/types/documentation';
+} from '@/types/components/universal';
+import { DocumentationNode, ChatMessage, DocumentationApiResponse } from '@/types/api/documentation';
 
 interface DocumentationPageProps {
   params: Promise<{

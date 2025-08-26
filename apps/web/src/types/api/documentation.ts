@@ -1,4 +1,4 @@
-import { TreeNodeBase } from './common';
+import { TreeNodeBase } from '../common';
 
 export interface DocumentationNode extends TreeNodeBase {
   type: 'folder' | 'file';

@@ -1,6 +1,6 @@
-import { TreeNodeBase } from './common';
-import { FileTreeNode } from './context';
-import { DocumentationNode, ChatMessage } from './documentation';
+import { TreeNodeBase } from '../common';
+import { FileTreeNode } from '../api/workspace';
+import { DocumentationNode, ChatMessage } from '../api/documentation';
 
 // =====================================
 // Types pour les modes des composants

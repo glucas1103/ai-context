@@ -7,8 +7,8 @@ import {
   AgentType,
   ANALYSIS_AGENT_CONFIG,
   DOCUMENTATION_AGENT_CONFIG 
-} from '@/lib/types/universal-components';
-import { ChatMessage } from '@/lib/types/documentation';
+} from '@/types/components/universal';
+import { ChatMessage } from '@/types/api/documentation';
 
 const UniversalChatPanel: React.FC<UniversalChatPanelProps> = ({
   agentType,

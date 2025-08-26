@@ -3,7 +3,7 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { FileTreeNode, WorkspaceData } from '@/lib/types/context'
+import { FileTreeNode, WorkspaceData } from '@/types/api/workspace'
 import ThreePanelsLayout from '@/components/layout/ThreePanelsLayout'
 import UniversalTreePanel from '@/components/ui/universal/UniversalTreePanel'
 import UniversalContentPanel from '@/components/ui/universal/UniversalContentPanel'
@@ -12,7 +12,7 @@ import {
   CODE_ICONS, 
   MONACO_CONFIG, 
   ANALYSIS_AGENT_CONFIG 
-} from '@/lib/types/universal-components'
+} from '@/types/components/universal'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import ErrorScreen from '@/components/ui/ErrorScreen'
 

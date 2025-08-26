@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { UpdateDocumentationItemRequest, DocumentationApiResponse, DocumentationNode } from '@/lib/types/documentation';
+import { UpdateDocumentationItemRequest, DocumentationApiResponse, DocumentationNode } from '@/types/api/documentation';
 
 export async function PUT(
   request: NextRequest,

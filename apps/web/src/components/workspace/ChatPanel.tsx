@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatPanelProps, ChatMessage } from '@/lib/types/documentation';
+import { ChatPanelProps, ChatMessage } from '@/types/api/documentation';
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
   onSendMessage,

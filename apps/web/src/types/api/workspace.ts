@@ -1,7 +1,10 @@
 // Types centralisés pour le contexte des workspaces
 import { TreeNodeBase } from './common'
 
-export interface FileTreeNode extends TreeNodeBase {
+export interface FileTreeNode {
+  id: string;
+  name: string;
+  path: string;
   type: 'file' | 'directory'
   size?: number
   sha?: string
