@@ -114,9 +114,10 @@ export const apiClient = {
       }
 
       return {
-        data: responseData,
-        success: true,
+        data: responseData.data,
+        success: responseData.success,
         status: response.status,
+        error: responseData.error,
       };
     } catch (error) {
       clearTimeout(timeoutId);
