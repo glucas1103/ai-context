@@ -12,7 +12,11 @@ export async function GET() {
     
     if (authError || !user) {
       return NextResponse.json(
-        { error: { message: 'Non authentifié', code: 'auth_required' } },
+        { 
+          success: false,
+          error: 'Non authentifié',
+          status: 401
+        },
         { status: 401 }
       )
     }
@@ -29,8 +33,12 @@ export async function GET() {
       })
 
       return NextResponse.json({
-        repos,
-        total: repos.length
+        success: true,
+        data: {
+          repos,
+          total: repos.length
+        },
+        status: 200
       })
 
     } catch (githubError) {
@@ -38,28 +46,44 @@ export async function GET() {
       if (githubError instanceof Error) {
         if (githubError.message.includes('token expired')) {
           return NextResponse.json(
-            { error: { message: 'Token GitHub expiré. Veuillez vous reconnecter.', code: 'github_token_expired' } },
+            { 
+              success: false,
+              error: 'Token GitHub expiré. Veuillez vous reconnecter.',
+              status: 401
+            },
             { status: 401 }
           )
         }
         
         if (githubError.message.includes('rate limit')) {
           return NextResponse.json(
-            { error: { message: 'Rate limit GitHub atteint. Veuillez réessayer plus tard.', code: 'github_rate_limit' } },
+            { 
+              success: false,
+              error: 'Rate limit GitHub atteint. Veuillez réessayer plus tard.',
+              status: 429
+            },
             { status: 429 }
           )
         }
 
         if (githubError.message.includes('not available')) {
           return NextResponse.json(
-            { error: { message: 'Token GitHub non disponible. Veuillez vous reconnecter.', code: 'github_token_missing' } },
+            { 
+              success: false,
+              error: 'Token GitHub non disponible. Veuillez vous reconnecter.',
+              status: 401
+            },
             { status: 401 }
           )
         }
 
         console.error('Erreur GitHub API:', githubError.message)
         return NextResponse.json(
-          { error: { message: 'Erreur lors de la récupération des dépôts', code: 'github_api_error' } },
+          { 
+            success: false,
+            error: 'Erreur lors de la récupération des dépôts',
+            status: 500
+          },
           { status: 500 }
         )
       }
@@ -70,7 +94,11 @@ export async function GET() {
   } catch (error) {
     console.error('Erreur inattendue lors de la récupération des dépôts:', error)
     return NextResponse.json(
-      { error: { message: 'Erreur interne du serveur', code: 'internal_error' } },
+      { 
+        success: false,
+        error: 'Erreur interne du serveur',
+        status: 500
+      },
       { status: 500 }
     )
   }

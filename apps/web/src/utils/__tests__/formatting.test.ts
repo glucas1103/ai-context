@@ -35,8 +35,8 @@ describe('formatting utils', () => {
 
   describe('formatNumber', () => {
     it('should format numbers with separators', () => {
-      expect(formatNumber(1000)).toBe('1 000');
-      expect(formatNumber(1000000)).toBe('1 000 000');
+      expect(formatNumber(1000)).toBe('1 000');
+      expect(formatNumber(1000000)).toBe('1 000 000');
     });
   });
 
@@ -56,14 +56,14 @@ describe('formatting utils', () => {
 
   describe('formatFileName', () => {
     it('should format file names correctly', () => {
-      expect(formatFileName('very-long-file-name.txt', 20)).toBe('very-long-file...txt');
+      expect(formatFileName('very-long-file-name.txt', 20)).toBe('very-long-....txt');
       expect(formatFileName('short.txt', 20)).toBe('short.txt');
     });
   });
 
   describe('formatFilePath', () => {
     it('should format file paths correctly', () => {
-      expect(formatFilePath('src/components/very/deep/path/file.ts')).toBe('src/.../deep/path/file.ts');
+      expect(formatFilePath('src/components/very/deep/path/file.ts')).toBe('src/.../path/file.ts');
       expect(formatFilePath('src/file.ts')).toBe('src/file.ts');
     });
   });

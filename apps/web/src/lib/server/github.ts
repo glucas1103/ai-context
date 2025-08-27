@@ -237,6 +237,9 @@ export function shouldIncludeFile(path: string): boolean {
     /\.tmp\//,
     /\.log$/,
     /\.lock$/,
+    /package-lock\.json$/,
+    /yarn\.lock$/,
+    /pnpm-lock\.yaml$/,
     /\.(jpg|jpeg|png|gif|svg|ico|webp|mp4|mp3|pdf|zip|tar|gz)$/i
   ]
 

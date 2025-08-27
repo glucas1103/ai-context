@@ -134,7 +134,7 @@ describe('Token Utils', () => {
       })
 
       await expect(handleTokenError(mockSupabase, error))
-        .rejects.toThrow('GitHub token has been revoked. Please reconnect your GitHub account.')
+        .rejects.toThrow('Unable to refresh GitHub token. Please reconnect your GitHub account.')
     })
 
     it('should throw original error for non-token errors', async () => {

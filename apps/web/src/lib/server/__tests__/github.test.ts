@@ -262,6 +262,8 @@ describe('shouldIncludeFile', () => {
     expect(shouldIncludeFile('error.log')).toBe(false)
     expect(shouldIncludeFile('package-lock.json')).toBe(false)
     expect(shouldIncludeFile('yarn.lock')).toBe(false)
+    expect(shouldIncludeFile('pnpm-lock.yaml')).toBe(false)
+    expect(shouldIncludeFile('Gemfile.lock')).toBe(false)
   })
 
   it('should exclude cache directories', () => {

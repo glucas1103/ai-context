@@ -111,7 +111,7 @@ describe('/auth/callback GET', () => {
 
       const response = await GET(request)
 
-      expect(response.headers.get('location')).toBe('http://localhost:3000/login?error=auth_error')
+      expect(response.headers.get('location')).toBe('http://localhost:3000/login?error=auth_error&message=Invalid%20authorization%20code')
       expect(console.error).toHaveBeenCalledWith(
         'Erreur lors de l\'échange du code OAuth:', 'Invalid authorization code'
       )
@@ -184,7 +184,7 @@ describe('/auth/callback GET', () => {
 
       const response = await GET(request)
 
-      expect(response.headers.get('location')).toBe('https://custom-domain.com/login?error=auth_error')
+      expect(response.headers.get('location')).toBe('https://custom-domain.com/login?error=auth_error&message=Invalid%20code')
     })
 
     it('should handle no_code error with custom origin', async () => {
@@ -244,7 +244,7 @@ describe('/auth/callback GET', () => {
 
       const response = await GET(request)
 
-      expect(response.headers.get('location')).toBe('http://localhost:3000/repos')
+      expect(response.headers.get('location')).toBe('http://localhost:3000')
     })
   })
 

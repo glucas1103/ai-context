@@ -75,7 +75,7 @@ describe('/api/github/repos GET', () => {
 
       expect(response.status).toBe(401)
       expect(data.error.code).toBe('github_token_missing')
-      expect(data.error.message).toBe('Token GitHub non disponible')
+      expect(data.error.message).toBe('Token GitHub non disponible. Veuillez vous reconnecter.')
     })
 
     it('should return 401 if session error occurs', async () => {
@@ -187,7 +187,7 @@ describe('/api/github/repos GET', () => {
 
       // Vérifier les headers de la requête GitHub
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.github.com/user/repos?sort=updated&per_page=100',
+        'https://api.github.com/user/repos?sort=updated&direction=desc&per_page=100&page=1',
         {
           headers: {
             'Authorization': 'Bearer github_token_123',
@@ -209,8 +209,8 @@ describe('/api/github/repos GET', () => {
       const data = await response.json()
 
       expect(response.status).toBe(401)
-      expect(data.error.code).toBe('github_token_invalid')
-      expect(data.error.message).toBe('Token GitHub expiré ou invalide')
+      expect(data.error.code).toBe('github_token_expired')
+      expect(data.error.message).toBe('Token GitHub expiré. Veuillez vous reconnecter.')
     })
 
     it('should handle GitHub 403 error (rate limit)', async () => {
@@ -225,7 +225,7 @@ describe('/api/github/repos GET', () => {
 
       expect(response.status).toBe(429)
       expect(data.error.code).toBe('github_rate_limit')
-      expect(data.error.message).toBe('Rate limit GitHub atteint')
+      expect(data.error.message).toBe('Rate limit GitHub atteint. Veuillez réessayer plus tard.')
     })
 
     it('should handle other GitHub API errors', async () => {
@@ -250,8 +250,8 @@ describe('/api/github/repos GET', () => {
       const data = await response.json()
 
       expect(response.status).toBe(500)
-      expect(data.error.code).toBe('internal_error')
-      expect(data.error.message).toBe('Erreur interne du serveur')
+      expect(data.error.code).toBe('github_api_error')
+      expect(data.error.message).toBe('Erreur lors de la récupération des dépôts')
     })
 
     it('should handle empty repos array', async () => {
@@ -338,7 +338,7 @@ describe('/api/github/repos GET', () => {
       await GET()
 
       expect(console.error).toHaveBeenCalledWith(
-        'Erreur API GitHub:', 500, 'Internal Server Error'
+        'Erreur lors de la récupération des dépôts GitHub:', expect.any(Error)
       )
     })
 
@@ -362,7 +362,7 @@ describe('/api/github/repos GET', () => {
       await GET()
 
       expect(console.error).toHaveBeenCalledWith(
-        'Erreur inattendue lors de la récupération des dépôts:', networkError
+        'Erreur lors de la récupération des dépôts GitHub:', expect.any(Error)
       )
     })
   })

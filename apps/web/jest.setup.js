@@ -69,13 +69,41 @@ global.Response = class MockResponse {
 // Mock fetch
 global.fetch = jest.fn()
 
-// Mock NextResponse
+// Mock Next.js server components
 jest.mock('next/server', () => ({
+  NextRequest: class MockNextRequest {
+    constructor(url, init = {}) {
+      this.url = url
+      this.method = init.method || 'GET'
+      this.body = init.body
+      this.headers = new Map()
+      this.nextUrl = new URL(url)
+    }
+    
+    json() {
+      return Promise.resolve(JSON.parse(this.body || '{}'))
+    }
+    
+    text() {
+      return Promise.resolve(this.body || '')
+    }
+  },
   NextResponse: {
-    json: jest.fn((data, init) => {
+    json: jest.fn((data, init = {}) => {
       const response = {
         json: () => Promise.resolve(data),
-        status: init?.status || 200
+        text: () => Promise.resolve(JSON.stringify(data)),
+        status: init.status || 200,
+        headers: new Map(),
+        ok: (init.status || 200) < 400
+      }
+      return response
+    }),
+    redirect: jest.fn((url, init = {}) => {
+      const response = {
+        status: init.status || 307,
+        headers: new Map([['location', url]]),
+        ok: false
       }
       return response
     })

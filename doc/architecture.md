@@ -25,7 +25,57 @@ L'architecture est conçue comme une application web moderne, serverless, et hé
 ## Structure du Dépôt
 
 - **Structure :** Monorepo
-- **Outil :** npm Workspaces (natif et simple pour démarrer).
+- **Outil :** npm Workspaces (natif et simple pour démarrer)
+
+### Organisation du Codebase
+
+```
+AIcontext/
+├── apps/
+│   └── web/                    # Application Next.js principale
+│       ├── src/
+│       │   ├── app/            # Next.js App Router
+│       │   │   ├── (pages)/    # Pages publiques
+│       │   │   ├── api/        # API Routes
+│       │   │   │   ├── auth/   # Routes d'authentification
+│       │   │   │   ├── github/ # Routes GitHub API
+│       │   │   │   ├── health/ # Route de santé
+│       │   │   │   └── workspaces/ # Routes des workspaces
+│       │   │   └── auth/       # Routes d'authentification
+│       │   ├── components/     # Composants React organisés par domaine
+│       │   │   ├── layout/     # Composants de mise en page
+│       │   │   ├── ui/         # Composants d'interface universels
+│       │   │   │   └── universal/ # Composants universels
+│       │   │   ├── documentation/ # Composants spécifiques à la documentation
+│       │   │   └── workspace/  # Composants spécifiques aux workspaces
+│       │   ├── types/          # Types TypeScript organisés par domaine
+│       │   │   ├── api/        # Types pour les API
+│       │   │   ├── components/ # Types pour les composants
+│       │   │   ├── auth.ts     # Types d'authentification
+│       │   │   └── common.ts   # Types partagés
+│       │   ├── constants/      # Constantes de l'application
+│       │   │   ├── api.ts      # Constantes API
+│       │   │   ├── routes.ts   # Constantes de routes
+│       │   │   └── ui.ts       # Constantes UI
+│       │   ├── utils/          # Utilitaires réutilisables
+│       │   │   ├── api.ts      # Client API et gestion d'erreurs
+│       │   │   ├── auth.ts     # Utilitaires d'authentification
+│       │   │   └── formatting.ts # Utilitaires de formatage
+│       │   ├── hooks/          # Hooks personnalisés
+│       │   ├── lib/            # Bibliothèques et configurations
+│       │   │   ├── supabase/   # Configuration Supabase
+│       │   │   └── middleware.ts # Middleware Next.js
+│       │   └── middleware.ts   # Middleware d'authentification
+│       ├── public/             # Fichiers statiques
+│       ├── e2e/                # Tests end-to-end
+│       └── test-results/       # Résultats des tests
+├── packages/                   # Packages partagés
+│   ├── eslint-config-custom/  # Configuration ESLint
+│   └── tsconfig/              # Configuration TypeScript
+├── bmad-core/                 # Configuration BMAD
+├── docs/                      # Documentation du projet
+└── doc/                       # Documentation technique
+```
 
 ## Diagramme d'Architecture de Haut Niveau
 
@@ -560,38 +610,84 @@ interface ApiError {
 
 ## Structure des Dossiers
 
-L'application Next.js suit la structure de l'App Router avec un segment group dédié à la UI :
+L'application Next.js suit la structure de l'App Router avec une organisation modulaire par domaine :
 
 ```
-/apps/web/app
-  /(pages)              # Pages UI (Front-end)
-    /layout.tsx
-    /page.tsx           # Accueil
-    /login/page.tsx
-    /repos/page.tsx
-    /workspaces/[id]/   # Workspace spécifique
-      /context/page.tsx
-      /documentation/page.tsx
-      /issues/page.tsx
-      /layout.tsx
-  /api                  # API Routes (Back-end)
-  /auth                 # Handlers auth techniques (callback/persist/signout)
-  /components           # Composants UI partagés (Shadcn)
-    /universal          # Composants universels
-  /lib                  # Utilitaires, clients API (SSR/Browser), intégrations server-only
-    /supabase/{client,server}.ts
-    /server/github.ts
-    /services/claude.ts
-    /agents/
-    errors.ts
-  /hooks                # Hooks React personnalisés
-  /stores               # Stores Zustand pour l'état global
+apps/web/src/
+├── app/                    # Next.js App Router
+│   ├── (pages)/           # Pages UI (Front-end)
+│   │   ├── layout.tsx
+│   │   ├── page.tsx       # Accueil
+│   │   ├── login/page.tsx
+│   │   ├── repos/page.tsx
+│   │   └── workspaces/[id]/ # Workspace spécifique
+│   │       ├── context/page.tsx
+│   │       ├── documentation/page.tsx
+│   │       ├── issues/page.tsx
+│   │       └── layout.tsx
+│   ├── api/               # API Routes (Back-end)
+│   │   ├── auth/          # Routes d'authentification
+│   │   ├── github/        # Routes GitHub API
+│   │   ├── health/        # Route de santé
+│   │   └── workspaces/    # Routes des workspaces
+│   └── auth/              # Handlers auth techniques
+├── components/            # Composants React organisés par domaine
+│   ├── layout/            # Composants de mise en page
+│   ├── ui/                # Composants d'interface universels
+│   │   └── universal/     # Composants universels
+│   ├── documentation/     # Composants spécifiques à la documentation
+│   └── workspace/         # Composants spécifiques aux workspaces
+├── types/                 # Types TypeScript organisés par domaine
+│   ├── api/               # Types pour les API
+│   ├── components/        # Types pour les composants
+│   ├── auth.ts            # Types d'authentification
+│   └── common.ts          # Types partagés
+├── constants/             # Constantes de l'application
+│   ├── api.ts             # Constantes API
+│   ├── routes.ts          # Constantes de routes
+│   └── ui.ts              # Constantes UI
+├── utils/                 # Utilitaires réutilisables
+│   ├── api.ts             # Client API et gestion d'erreurs
+│   ├── auth.ts            # Utilitaires d'authentification
+│   └── formatting.ts      # Utilitaires de formatage
+├── hooks/                 # Hooks React personnalisés
+├── lib/                   # Bibliothèques et configurations
+│   ├── supabase/          # Configuration Supabase
+│   └── middleware.ts      # Middleware Next.js
+└── middleware.ts          # Middleware d'authentification
 ```
 
-Conventions supplémentaires:
+### Conventions de Développement
 
-- Colocaliser les composants spécifiques à une page dans le dossier de la page (ex: `app/(pages)/repos/AnalyzeButton.tsx`).
-- Les utilitaires réutilisables ou multi-pages vont sous `app/lib`.
+#### **Organisation des Composants**
+- **`components/layout/`** : Composants de mise en page (ThreePanelsLayout, etc.)
+- **`components/ui/`** : Composants d'interface universels réutilisables
+- **`components/ui/universal/`** : Composants universels spécifiques (chat, tree, content panels)
+- **`components/documentation/`** : Composants spécifiques à la documentation
+- **`components/workspace/`** : Composants spécifiques aux workspaces
+
+#### **Organisation des Types**
+- **`types/api/`** : Types pour les API (workspace, documentation, github)
+- **`types/components/`** : Types pour les composants (universal, ui)
+- **`types/auth.ts`** : Types d'authentification
+- **`types/common.ts`** : Types partagés (ApiResponse, PaginationParams, etc.)
+
+#### **Organisation des Utilitaires**
+- **`utils/api.ts`** : Client API centralisé avec gestion d'erreurs
+- **`utils/auth.ts`** : Utilitaires d'authentification
+- **`utils/formatting.ts`** : Utilitaires de formatage (dates, fichiers, etc.)
+
+#### **Conventions de Nommage**
+- **Composants** : PascalCase (ex: `ThreePanelsLayout.tsx`)
+- **Hooks** : camelCase avec préfixe `use` (ex: `useAuth.ts`)
+- **Types** : PascalCase (ex: `Workspace.ts`)
+- **Constants** : UPPER_SNAKE_CASE (ex: `API_ENDPOINTS`)
+- **Fichiers** : kebab-case pour les routes, camelCase pour les utilitaires
+
+#### **Imports et Exports**
+- Utiliser les alias `@/` pour les imports relatifs à `src/`
+- Créer des fichiers `index.ts` dans chaque dossier pour faciliter les imports
+- Ordre des imports : React, bibliothèques externes, composants internes, types, utils
 
 ## Gestion de l'État
 
@@ -601,12 +697,55 @@ Nous utiliserons **Zustand** pour gérer l'état global de l'application (ex: se
 
 # 15. Architecture Back-end (API Routes)
 
-La logique back-end est exposée via des `route.ts` sous `/app`. Les endpoints REST sont regroupés sous `/app/api`, tandis que certains handlers techniques peuvent exister hors `/api` pour des raisons d'URL (ex: `/auth/callback`).
+La logique back-end est exposée via des `route.ts` sous `/app/api`. Les endpoints REST sont organisés par domaine fonctionnel avec une structure standardisée.
 
-- **Analyse du Code :** Orchestrée par les routes `app/api/workspaces/[id]/analyze/route.ts` s'appuyant sur `lib/server/github.ts`.
-- **Interaction IA :** Un service centralisé, utilisant **Claude Code SDK**, gérera les agents d'investigation et les appels aux modèles de langage.
-- **Intégration Git :** Les appels GitHub (trees, refs, metadata) sont implémentés dans `app/lib/server/github.ts`.
-- **Erreurs API :** Les réponses JSON standardisées utilisent `app/lib/errors.ts`.
+## Organisation des API Routes
+
+```
+app/api/
+├── auth/                    # Routes d'authentification
+│   ├── callback/           # Callback OAuth GitHub
+│   └── signout/            # Déconnexion
+├── github/                 # Routes GitHub API
+│   └── repos/              # Liste des dépôts utilisateur
+├── health/                 # Route de santé
+└── workspaces/             # Routes des workspaces
+    ├── route.ts            # GET/POST /api/workspaces
+    └── [id]/               # Routes spécifiques à un workspace
+        ├── route.ts        # GET/PUT/DELETE /api/workspaces/[id]
+        ├── analyze/        # POST /api/workspaces/[id]/analyze
+        ├── context/        # GET /api/workspaces/[id]/context
+        ├── documentation/  # GET /api/workspaces/[id]/documentation
+        └── issues/         # GET /api/workspaces/[id]/issues
+```
+
+## Structure de Réponse Standardisée
+
+Toutes les API routes suivent une structure de réponse cohérente :
+
+```typescript
+// Succès
+{
+  success: true,
+  data: { /* données */ },
+  status: 200
+}
+
+// Erreur
+{
+  success: false,
+  error: "Message d'erreur",
+  status: 400
+}
+```
+
+## Services et Utilitaires
+
+- **Client API :** `utils/api.ts` - Client centralisé avec gestion d'erreurs et timeouts
+- **Gestion d'Erreurs :** `utils/api.ts` - Fonctions `createErrorResponse` et `handleApiError`
+- **Intégration GitHub :** `lib/supabase/github-api.ts` - Wrapper pour l'API GitHub avec gestion des tokens
+- **Authentification :** `lib/supabase/` - Clients Supabase pour l'authentification
+- **Types API :** `types/api/` - Types TypeScript pour toutes les réponses API
 
 ---
 

@@ -41,11 +41,12 @@ export async function middleware(request: NextRequest) {
     
     // Si c'est une erreur de session manquante, c'est normal pour les utilisateurs non connectés
     if (error.message === 'Auth session missing!') {
-      // Permettre l'accès aux pages publiques
+      // Permettre l'accès aux pages publiques et API routes
       if (
         request.nextUrl.pathname.startsWith('/login') ||
         request.nextUrl.pathname.startsWith('/auth') ||
         request.nextUrl.pathname.startsWith('/error') ||
+        request.nextUrl.pathname.startsWith('/api/') ||
         request.nextUrl.pathname === '/'
       ) {
         return supabaseResponse
@@ -78,11 +79,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // Utilisateur non authentifié
-  // Permettre l'accès aux pages publiques
+  // Permettre l'accès aux pages publiques et API routes
   if (
     request.nextUrl.pathname.startsWith('/login') ||
     request.nextUrl.pathname.startsWith('/auth') ||
     request.nextUrl.pathname.startsWith('/error') ||
+    request.nextUrl.pathname.startsWith('/api/') ||
     request.nextUrl.pathname === '/'
   ) {
     return supabaseResponse
