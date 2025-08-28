@@ -12,7 +12,7 @@ import {
   TIPTAP_CONFIG, 
   DOCUMENTATION_AGENT_CONFIG 
 } from '@/types/components/universal';
-import { DocumentationNode, ChatMessage, DocumentationApiResponse } from '@/types/api/documentation';
+import { DocumentationNode, LegacyChatMessage, DocumentationApiResponse } from '@/types/api/documentation';
 
 interface DocumentationPageProps {
   params: Promise<{
@@ -31,7 +31,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
   const [fileContent, setFileContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<LegacyChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -152,7 +152,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
 
   // Gérer les messages du chat
   const handleSendMessage = useCallback(async (message: string) => {
-    const userMessage: ChatMessage = {
+    const userMessage: LegacyChatMessage = {
       id: Date.now().toString(),
       type: 'user',
       content: message,
@@ -164,7 +164,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
 
     // Simuler une réponse de l'IA (à remplacer par l'intégration réelle)
     setTimeout(() => {
-      const assistantMessage: ChatMessage = {
+      const assistantMessage: LegacyChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
         content: `Je comprends votre demande : "${message}". Cette fonctionnalité sera disponible prochainement avec l'intégration complète de l'IA.`,

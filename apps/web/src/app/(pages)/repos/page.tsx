@@ -1,43 +1,39 @@
 'use client'
 
-import { ROUTES } from "@/constants/routes";
-import { API_ENDPOINTS } from "@/constants/api";
-import { apiClient } from "@/utils/api";
-import { formatDate, formatFileSize } from "@/utils/formatting";
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { apiClient } from '@/utils/api'
+import { API_ENDPOINTS } from '@/constants/api'
+import { ROUTES } from '@/constants/routes'
+import { ApiResponseWithReauth, ReposResponse, FormattedRepo as Repo } from '@/types/api/github'
+import { formatFileSize, formatDate } from '@/utils/formatting'
 
-interface Repo {
-  id: number
-  name: string
-  fullName: string
-  description: string | null
-  url: string
-  isPrivate: boolean
-  owner: {
-    login: string
-    avatarUrl: string
-  }
-  updatedAt: string
-  language: string | null
-  stars: number
-  size: number
-}
-
-interface ReposResponse {
-  repos: Repo[]
-  total: number
-}
-
-export default function ReposPage() {
+function ReposPageContent() {
   const [repos, setRepos] = useState<Repo[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [analyzingRepo, setAnalyzingRepo] = useState<number | null>(null)
+  const [analyzingRepo, setAnalyzingRepo] = useState<string | null>(null)
+  const [hasRedirected, setHasRedirected] = useState(false) // Éviter les redirections multiples
+  const [retryCount, setRetryCount] = useState(0) // Limiter les tentatives
+  const [isRedirecting, setIsRedirecting] = useState(false) // État de redirection
+
   const { user, isAuthenticated, loading, signOut } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Détecter immédiatement la redirection reauth
+  useEffect(() => {
+    const reauthParam = searchParams.get('reauth')
+    if (reauthParam === 'github') {
+      console.log('Paramètre reauth=github détecté, redirection immédiate')
+      setIsLoading(false)
+      setIsRedirecting(true)
+      // Redirection immédiate
+      window.location.href = '/login?reauth=github'
+    }
+  }, [searchParams])
 
   // Filtrer les dépôts selon le terme de recherche
   const filteredRepos = repos.filter(repo =>
@@ -54,30 +50,77 @@ export default function ReposPage() {
         return
       }
       
-      // Rediriger si pas authentifié
-      if (!isAuthenticated) {
+      // Ne pas charger si on est en cours de redirection
+      if (isRedirecting) {
+        return
+      }
+      
+      // Rediriger si pas authentifié (une seule fois)
+      if (!isAuthenticated && !hasRedirected) {
+        setHasRedirected(true)
         router.replace('/login')
         return
       }
 
+      // Si déjà redirigé, ne pas continuer
+      if (hasRedirected) {
+        return
+      }
+
+      // Limiter les tentatives pour éviter les boucles infinies
+      if (retryCount >= 2) {
+        setError('Impossible de charger les dépôts après plusieurs tentatives. Veuillez vous reconnecter.')
+        setIsLoading(false)
+        return
+      }
+
       try {
+        setIsLoading(true)
+        setError(null)
 
         // Charger les dépôts
-        const response = await apiClient.get<ReposResponse>(API_ENDPOINTS.GITHUB_REPOS)
+        const response = await apiClient.get<ReposResponse>(API_ENDPOINTS.GITHUB_REPOS) as any
         
         if (!response.success) {
           if (response.status === 401) {
-            router.replace(ROUTES.LOGIN)
-            return
+            // Vérifier si une reconnexion GitHub est nécessaire
+            if (response.requiresReauth && !hasRedirected) {
+              console.log('Reconnexion GitHub nécessaire, redirection vers login')
+              setHasRedirected(true)
+              // Forcer la redirection vers la page de login avec un paramètre pour forcer la reconnexion GitHub
+              window.location.href = `${ROUTES.LOGIN}?reauth=github`
+              return
+            }
+            
+            if (!hasRedirected) {
+              setHasRedirected(true)
+              window.location.href = ROUTES.LOGIN
+              return
+            }
           }
           
           throw new Error(response.error || 'Erreur lors du chargement des dépôts')
         }
 
         setRepos(response.data!.repos)
+        setRetryCount(0) // Réinitialiser le compteur en cas de succès
         
       } catch (err) {
         console.error('Erreur lors du chargement:', err)
+        
+        // Vérifier si c'est une erreur de token GitHub
+        if (err instanceof Error && 
+            (err.message.includes('Token GitHub') || err.message.includes('reconnection required')) && 
+            !hasRedirected) {
+          console.log('Erreur de token GitHub détectée, redirection vers reconnexion')
+          setHasRedirected(true)
+          window.location.href = `${ROUTES.LOGIN}?reauth=github`
+          return
+        }
+        
+        // Incrémenter le compteur de tentatives
+        setRetryCount(prev => prev + 1)
+        
         setError(err instanceof Error ? err.message : 'Erreur inattendue')
       } finally {
         setIsLoading(false)
@@ -85,16 +128,23 @@ export default function ReposPage() {
     }
 
     loadRepos()
-  }, [isAuthenticated, loading, router])
+  }, [isAuthenticated, loading, router, hasRedirected, retryCount, isRedirecting])
 
   const handleSignOut = async () => {
     await signOut()
   }
 
+  const handleRetry = () => {
+    setRetryCount(0)
+    setHasRedirected(false)
+    setError(null)
+    setIsLoading(true)
+  }
+
   const handleSelectRepo = async (repo: Repo) => {
-    if (analyzingRepo === repo.id) return // Éviter les double-clics
+    if (analyzingRepo === repo.id.toString()) return // Éviter les double-clics
     
-    setAnalyzingRepo(repo.id)
+    setAnalyzingRepo(repo.id.toString())
     setError(null)
 
     try {
@@ -134,6 +184,30 @@ export default function ReposPage() {
 
   // Les fonctions de formatage sont maintenant importées depuis @/utils/formatting
 
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center">
+          <div className="bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-700">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold text-white mb-2">
+              Reconnexion GitHub requise
+            </h2>
+            <p className="text-gray-300 mb-6">
+              Redirection vers la page de reconnexion...
+            </p>
+            <button
+              onClick={() => window.location.href = '/login?reauth=github'}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Cliquez ici si la redirection ne fonctionne pas
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -154,12 +228,20 @@ export default function ReposPage() {
               Erreur de chargement
             </h2>
             <p className="text-red-200 mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-            >
-              Réessayer
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={handleRetry}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors mr-2"
+              >
+                Réessayer
+              </button>
+              <button
+                onClick={() => window.location.href = `${ROUTES.LOGIN}?reauth=github`}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+              >
+                Se reconnecter
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -284,14 +366,14 @@ export default function ReposPage() {
                 </p>
                 <button
                   onClick={() => handleSelectRepo(repo)}
-                  disabled={analyzingRepo === repo.id}
+                  disabled={analyzingRepo === repo.id.toString()}
                   className={`px-3 py-1 text-white text-sm rounded transition-colors ${
-                    analyzingRepo === repo.id
+                    analyzingRepo === repo.id.toString()
                       ? 'bg-gray-600 cursor-not-allowed'
                       : 'bg-blue-600 hover:bg-blue-700'
                   }`}
                 >
-                  {analyzingRepo === repo.id ? (
+                  {analyzingRepo === repo.id.toString() ? (
                     <div className="flex items-center space-x-2">
                       <div className="animate-spin rounded-full h-3 w-3 border-b border-white"></div>
                       <span>Analyse...</span>
@@ -318,5 +400,20 @@ export default function ReposPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function ReposPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-300">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <ReposPageContent />
+    </Suspense>
   )
 }

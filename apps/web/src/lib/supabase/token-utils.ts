@@ -19,58 +19,8 @@ export function isTokenExpired(session: any): boolean {
 }
 
 /**
- * Rafraîchit proactivement les tokens si nécessaire selon la documentation officielle
- * @param supabase - Client Supabase
- * @returns Le provider token (nouveau ou existant)
- */
-export async function refreshTokenIfNeeded(supabase: SupabaseClient) {
-  const { data: { session } } = await supabase.auth.getSession()
-  
-  if (session && isTokenExpired(session)) {
-    const { data, error } = await supabase.auth.refreshSession()
-    
-    if (error) {
-      throw new Error('Failed to refresh token')
-    }
-    
-    return data.session?.provider_token
-  }
-  
-  return session?.provider_token
-}
-
-/**
- * Gère les erreurs de tokens selon la documentation officielle Supabase
- * @param supabase - Client Supabase
- * @param error - Erreur reçue
- * @returns Le nouveau provider token ou null si échec
- */
-export async function handleTokenError(supabase: SupabaseClient, error: any): Promise<string | null> {
-  // Si l'erreur indique un token expiré ou révoqué
-  if (error.message?.includes('token') || error.status === 401) {
-    try {
-      // Tenter de rafraîchir la session selon la documentation officielle
-      const { data, error: refreshError } = await supabase.auth.refreshSession()
-      
-      if (refreshError) {
-        // Token révoqué de manière permanente
-        throw new Error('GitHub token has been revoked. Please reconnect your GitHub account.')
-      }
-      
-      // Retourner le nouveau token
-      return data.session?.provider_token || null
-    } catch (refreshError) {
-      // Échec du refresh
-      throw new Error('Unable to refresh GitHub token. Please reconnect your GitHub account.')
-    }
-  }
-  
-  // Autre type d'erreur
-  throw error
-}
-
-/**
- * Récupère un provider token valide avec gestion automatique du refresh
+ * Récupère un provider token valide selon la documentation officielle Supabase
+ * IMPORTANT: Supabase Auth ne gère PAS automatiquement le refresh des provider tokens
  * @param supabase - Client Supabase
  * @returns Le provider token ou null si non disponible
  */
@@ -79,22 +29,27 @@ export async function getValidProviderToken(supabase: SupabaseClient): Promise<s
     // Récupérer la session actuelle
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     
-    if (sessionError || !session) {
+    if (sessionError) {
+      console.error('Erreur session Supabase:', sessionError)
+      return null
+    }
+    
+    if (!session) {
+      console.log('Aucune session Supabase active')
       return null
     }
 
-    // Vérifier si le provider token est disponible
-    let providerToken = session.provider_token
+    console.log('Session trouvée pour:', session.user?.email)
+    console.log('Provider token disponible:', !!session.provider_token)
+    console.log('Access token disponible:', !!session.access_token)
+
+    // Retourner directement le provider token s'il existe
+    // Selon la documentation Supabase, on ne doit PAS tenter de refresh automatique
+    const providerToken = session.provider_token
     
     if (!providerToken) {
-      // Tenter de rafraîchir la session selon la documentation officielle
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-      
-      if (refreshError || !refreshData.session?.provider_token) {
-        return null
-      }
-      
-      providerToken = refreshData.session.provider_token
+      console.log('Aucun provider token disponible - reconnexion GitHub nécessaire')
+      return null
     }
 
     return providerToken
@@ -105,7 +60,7 @@ export async function getValidProviderToken(supabase: SupabaseClient): Promise<s
 }
 
 /**
- * Effectue un appel GitHub API avec gestion automatique du refresh des tokens
+ * Effectue un appel GitHub API avec gestion des erreurs selon la documentation officielle
  * @param supabase - Client Supabase
  * @param url - URL de l'API GitHub
  * @param options - Options de la requête fetch
@@ -120,7 +75,8 @@ export async function callGitHubAPI(
   const providerToken = await getValidProviderToken(supabase)
   
   if (!providerToken) {
-    throw new Error('GitHub token not available')
+    // Retourner une erreur spécifique pour indiquer que la reconnexion est nécessaire
+    throw new Error('GitHub token not available - reconnection required')
   }
 
   // Effectuer l'appel API avec le token
@@ -134,32 +90,38 @@ export async function callGitHubAPI(
     },
   })
 
-  // Si l'API GitHub retourne une erreur d'autorisation, tenter de rafraîchir
+  // Gérer les erreurs GitHub selon la documentation officielle
   if (response.status === 401) {
-    try {
-      // Tenter de rafraîchir la session selon la documentation officielle
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-      
-      if (refreshError || !refreshData.session?.provider_token) {
-        throw new Error('GitHub token expired')
-      }
-      
-      // Réessayer avec le nouveau token
-      const retryResponse = await fetch(url, {
-        ...options,
-        headers: {
-          'Authorization': `Bearer ${refreshData.session.provider_token}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'AIcontext-App',
-          ...options.headers,
-        },
-      })
-      
-      return retryResponse
-    } catch (refreshError) {
-      throw new Error('GitHub token expired')
+    // Token expiré ou révoqué - nécessite une reconnexion
+    throw new Error('GitHub token expired - reconnection required')
+  }
+
+  if (response.status === 403) {
+    // Rate limit ou permissions insuffisantes
+    const rateLimitRemaining = response.headers.get('x-ratelimit-remaining')
+    if (rateLimitRemaining === '0') {
+      throw new Error('GitHub rate limit exceeded')
     }
+    throw new Error('GitHub API access denied - insufficient permissions')
   }
 
   return response
+}
+
+/**
+ * Gère les erreurs de tokens selon la documentation officielle Supabase
+ * @param supabase - Client Supabase
+ * @param error - Erreur reçue
+ * @returns Le nouveau provider token ou null si échec
+ */
+export async function handleTokenError(supabase: SupabaseClient, error: any): Promise<string | null> {
+  // Si l'erreur indique un token expiré ou révoqué
+  if (error.message?.includes('token') || error.status === 401) {
+    // Selon la documentation Supabase, on ne peut pas rafraîchir automatiquement les provider tokens
+    // Il faut demander à l'utilisateur de se reconnecter
+    throw new Error('GitHub token has been revoked or expired. Please reconnect your GitHub account.')
+  }
+  
+  // Autre type d'erreur
+  throw error
 }

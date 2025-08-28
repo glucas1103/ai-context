@@ -2,7 +2,7 @@ import { API_ENDPOINTS } from "@/constants/api";
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatPanelProps, ChatMessage } from '@/types/api/documentation';
+import { ChatPanelProps, LegacyChatMessage } from '@/types/api/documentation';
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
   onSendMessage,

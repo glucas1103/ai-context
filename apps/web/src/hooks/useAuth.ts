@@ -90,16 +90,27 @@ export function useAuth() {
   }, [supabase.auth])
 
   // Fonction de connexion GitHub
-  const signInWithGitHub = async () => {
+  const signInWithGitHub = async (forceReauth = false) => {
     try {
       setAuthState(prev => ({ ...prev, loading: true, error: null }))
 
+      // Si c'est une reconnexion forcée, on doit passer des paramètres pour forcer GitHub à redemander l'autorisation
+      const authOptions: any = {
+        scopes: 'repo read:user read:org',
+        redirectTo: `${window.location.origin}/auth/callback`,
+      }
+
+      // Forcer la reconnexion en ajoutant un paramètre qui force GitHub à redemander l'autorisation
+      if (forceReauth) {
+        console.log('Forçage de la reconnexion GitHub avec prompt=consent')
+        authOptions.queryParams = {
+          prompt: 'consent' // Force GitHub à redemander l'autorisation
+        }
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
-        options: {
-          scopes: 'repo read:user read:org',
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        options: authOptions,
       })
 
       if (error) {

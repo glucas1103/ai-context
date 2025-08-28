@@ -1,44 +1,45 @@
+import { ApiResponse } from '@/utils/api'
+
 export interface GitHubRepo {
-  id: number;
-  name: string;
-  full_name: string;
-  private: boolean;
-  html_url: string;
-  description?: string;
-  language?: string;
-  stargazers_count: number;
-  forks_count: number;
-  updated_at: string;
-  default_branch: string;
-  owner: GitHubUser;
+  id: number
+  name: string
+  full_name: string
+  description: string | null
+  html_url: string
+  private: boolean
+  owner: {
+    login: string
+    avatar_url: string
+  }
+  updated_at: string
+  language: string | null
+  stargazers_count: number
+  size: number
 }
 
-export interface GitHubUser {
-  id: number;
-  login: string;
-  avatar_url: string;
-  name?: string;
-  email?: string;
-  type: 'User' | 'Organization';
+export interface FormattedRepo {
+  id: number
+  name: string
+  fullName: string
+  description: string | null
+  url: string
+  isPrivate: boolean
+  owner: {
+    login: string
+    avatarUrl: string
+  }
+  updatedAt: string
+  language: string | null
+  stars: number
+  size: number
 }
 
-export interface GitHubApiResponse<T = any> {
-  data?: T;
-  error?: {
-    message: string;
-    code?: string;
-  };
-  success: boolean;
+export interface ReposResponse {
+  repos: FormattedRepo[]
+  total: number
 }
 
-export interface GitHubAuthResponse {
-  access_token: string;
-  token_type: string;
-  scope: string;
-}
-
-export interface GitHubRepoListResponse {
-  repos: GitHubRepo[];
-  total_count: number;
-  has_more: boolean;
+// Type étendu pour les réponses d'API qui peuvent nécessiter une reconnexion
+export interface ApiResponseWithReauth<T> extends ApiResponse<T> {
+  requiresReauth?: boolean
 }

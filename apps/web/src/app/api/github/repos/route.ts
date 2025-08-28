@@ -11,6 +11,7 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
+      console.log('Utilisateur non authentifié:', authError?.message)
       return NextResponse.json(
         { 
           success: false,
@@ -20,6 +21,8 @@ export async function GET() {
         { status: 401 }
       )
     }
+
+    console.log('Utilisateur authentifié:', user.email)
 
     // Créer une instance de GitHubAPI avec gestion automatique des tokens
     const githubAPI = new GitHubAPI(supabase)
@@ -32,6 +35,8 @@ export async function GET() {
         per_page: 100
       })
 
+      console.log('Dépôts récupérés avec succès:', repos.length)
+
       return NextResponse.json({
         success: true,
         data: {
@@ -42,14 +47,34 @@ export async function GET() {
       })
 
     } catch (githubError) {
+      console.error('Erreur GitHub API:', githubError)
+      
       // Gestion spécifique des erreurs GitHub
       if (githubError instanceof Error) {
-        if (githubError.message.includes('token expired')) {
+        if (githubError.message.includes('token expired') || 
+            githubError.message.includes('GitHub token expired') ||
+            githubError.message.includes('reconnection required')) {
+          console.log('Token GitHub expiré ou non disponible, redirection vers reconnexion')
           return NextResponse.json(
             { 
               success: false,
-              error: 'Token GitHub expiré. Veuillez vous reconnecter.',
-              status: 401
+              error: 'Token GitHub expiré ou non disponible. Veuillez vous reconnecter.',
+              status: 401,
+              requiresReauth: true
+            },
+            { status: 401 }
+          )
+        }
+        
+        if (githubError.message.includes('not available') || 
+            githubError.message.includes('GitHub token not available')) {
+          console.log('Token GitHub non disponible, redirection vers reconnexion')
+          return NextResponse.json(
+            { 
+              success: false,
+              error: 'Token GitHub non disponible. Veuillez vous reconnecter.',
+              status: 401,
+              requiresReauth: true
             },
             { status: 401 }
           )
@@ -63,17 +88,6 @@ export async function GET() {
               status: 429
             },
             { status: 429 }
-          )
-        }
-
-        if (githubError.message.includes('not available')) {
-          return NextResponse.json(
-            { 
-              success: false,
-              error: 'Token GitHub non disponible. Veuillez vous reconnecter.',
-              status: 401
-            },
-            { status: 401 }
           )
         }
 

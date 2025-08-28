@@ -1,8 +1,8 @@
 // API types
 export * from './api';
 
-// Component types
-export * from './components';
+// Chat types (Universal Claude Code)
+export * from './chat';
 
 // Auth types
 export * from './auth';

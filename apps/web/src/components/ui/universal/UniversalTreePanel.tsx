@@ -150,7 +150,7 @@ function UniversalTreePanel<T extends TreeNodeBase>({
         await onTreeUpdate();
         setCreateModal({ isOpen: false, type: null });
         if (result.data) {
-          onSelect(result.data as T);
+          onSelect(result.data as unknown as T);
         }
       } else {
         onError(result.error?.message || 'Erreur lors de la création du fichier');

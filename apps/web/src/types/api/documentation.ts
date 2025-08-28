@@ -83,8 +83,8 @@ export interface TipTapEditorProps {
   className?: string;
 }
 
-// Types pour le panneau de chat
-export interface ChatMessage {
+// Types pour le panneau de chat (ancienne version - remplacé par types universels)
+export interface LegacyChatMessage {
   id: string;
   type: 'user' | 'assistant';
   content: string;
@@ -93,7 +93,7 @@ export interface ChatMessage {
 
 export interface ChatPanelProps {
   onSendMessage: (message: string) => void;
-  messages: ChatMessage[];
+  messages: LegacyChatMessage[];
   isLoading?: boolean;
   placeholder?: string;
 }

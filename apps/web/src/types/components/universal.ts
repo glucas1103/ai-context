@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from "@/constants/api";
 import { TreeNodeBase } from '../common';
 import { FileTreeNode } from '../api/workspace';
-import { DocumentationNode, ChatMessage } from '../api/documentation';
+import { DocumentationNode, LegacyChatMessage } from '../api/documentation';
 
 // =====================================
 // Types pour les modes des composants
@@ -128,7 +128,7 @@ export interface UniversalChatPanelProps {
   workspaceId: string;
   
   onSendMessage: (message: string) => Promise<void>;
-  messages: ChatMessage[];
+  messages: LegacyChatMessage[];
   isLoading?: boolean;
   
   // Configuration agent IA (Story 1.6)

@@ -159,6 +159,23 @@ export const extractApiData = <T>(response: ApiResponse<T>): T => {
 };
 
 /**
+ * Crée une réponse API standardisée
+ */
+export const createApiResponse = <T>(
+  success: boolean,
+  data?: T,
+  error?: string | undefined,
+  status?: number
+): ApiResponse<T> => {
+  return {
+    success,
+    data,
+    error: error || undefined,
+    status: status || (success ? API_STATUS_CODES.OK : API_STATUS_CODES.INTERNAL_SERVER_ERROR),
+  };
+};
+
+/**
  * Crée une réponse d'erreur standardisée pour les API routes
  */
 export const createErrorResponse = (
