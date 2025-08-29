@@ -21,6 +21,8 @@ export interface ClaudeCodeContext {
   investigationHistory?: InvestigationStep[];
   workspacePath?: string;
   sessionId?: string;
+  activeTools?: ClaudeCodeTool[];
+  fileAnalysisCache?: FileAnalysisResult[];
 }
 
 export interface InvestigationStep {
@@ -43,6 +45,79 @@ export interface InvestigationResult {
   query: string;
   result: any;
   files: string[];
+}
+
+// =====================================
+// Nouveaux types pour Phase 7 - Fonctionnalités Avancées
+// =====================================
+
+export interface ClaudeCodeTool {
+  name: string;
+  description: string;
+  isActive: boolean;
+  lastUsed?: Date;
+  usageCount: number;
+}
+
+export interface FileAnalysisResult {
+  filePath: string;
+  language: string;
+  complexity: 'low' | 'medium' | 'high';
+  dependencies: string[];
+  functions: FunctionInfo[];
+  classes: ClassInfo[];
+  lastAnalyzed: Date;
+  codePreview?: CodePreview;
+}
+
+export interface FunctionInfo {
+  name: string;
+  lineStart: number;
+  lineEnd: number;
+  parameters: string[];
+  returnType?: string;
+  description?: string;
+}
+
+export interface ClassInfo {
+  name: string;
+  lineStart: number;
+  lineEnd: number;
+  methods: FunctionInfo[];
+  properties: string[];
+  extends?: string;
+}
+
+export interface CodePreview {
+  content: string;
+  language: string;
+  highlightedLines?: number[];
+  startLine?: number;
+  endLine?: number;
+}
+
+export interface ClaudeCodeAction {
+  type: 'investigation' | 'analysis' | 'refactoring' | 'documentation';
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  description: string;
+  progress?: number; // 0-100
+  details?: string;
+  startTime: Date;
+  endTime?: Date;
+  tools: string[];
+  files: string[];
+}
+
+export interface EnrichedMessage extends ChatMessage {
+  codePreview?: CodePreview;
+  actions?: ClaudeCodeAction[];
+  analysisResults?: FileAnalysisResult[];
+  toolsUsed?: ClaudeCodeTool[];
+  investigationContext?: {
+    query: string;
+    scope: string[];
+    findings: any[];
+  };
 }
 
 // =====================================

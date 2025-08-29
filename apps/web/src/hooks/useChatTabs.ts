@@ -88,8 +88,8 @@ export function useChatTabs(workspaceId: string, userId: string): UseChatTabsRes
     try {
       setError(null)
       
-      console.log('🔥 CRÉATION DE SESSION DEMANDÉE - addTab appelé:', { type, workspaceId, userId })
-      console.trace('🔥 Stack trace de la création de session:')
+      // console.log('🔥 CRÉATION DE SESSION DEMANDÉE - addTab appelé:', { type, workspaceId, userId })
+      // console.trace('🔥 Stack trace de la création de session:')
       
       const newTabOrder = Math.max(...tabs.map(t => t.tabOrder), 0) + 1
       const title = `${type === 'analysis' ? 'Analyse' : type === 'documentation' ? 'Documentation' : 'Conversation'} ${newTabOrder}`

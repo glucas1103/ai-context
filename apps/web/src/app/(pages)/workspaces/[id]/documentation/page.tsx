@@ -13,6 +13,7 @@ import {
   DOCUMENTATION_AGENT_CONFIG 
 } from '@/types/components/universal';
 import { DocumentationNode, LegacyChatMessage, DocumentationApiResponse } from '@/types/api/documentation';
+import type { ChatMessage } from '@/types/chat/universal';
 
 interface DocumentationPageProps {
   params: Promise<{
@@ -151,7 +152,13 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
   }, [selectedFile, saveFileContent]);
 
   // Gérer les messages du chat
-  const handleSendMessage = useCallback(async (message: string) => {
+  const handleSendMessage = useCallback((message: ChatMessage) => {
+    // Adapter pour l'ancien système - extraire le contenu du message
+    const messageContent = typeof message === 'string' ? message : message.content;
+    return handleLegacySendMessage(messageContent);
+  }, []);
+  
+  const handleLegacySendMessage = useCallback(async (message: string) => {
     const userMessage: LegacyChatMessage = {
       id: Date.now().toString(),
       type: 'user',
@@ -266,12 +273,9 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
           rightPanel={
             <UniversalChatPanel
               agentType="documentation"
-              selectedItem={selectedFile}
+              selectedItem={selectedFile ? { path: selectedFile.path, name: selectedFile.name } : undefined}
               workspaceId={workspaceId!}
-              onSendMessage={handleSendMessage}
-              messages={messages}
-              isLoading={isChatLoading}
-              agentConfig={DOCUMENTATION_AGENT_CONFIG}
+              onMessageSent={handleSendMessage}
             />
           }
           config={{

@@ -24,6 +24,7 @@
     "playwright:install": "playwright install"
   },
   "dependencies": {
+    "@instantlyeasy/claude-code-sdk-ts": "^0.3.3",
     "@mdxeditor/editor": "^3.42.0",
     "@monaco-editor/react": "^4.6.0",
     "@supabase/ssr": "^0.1.0",

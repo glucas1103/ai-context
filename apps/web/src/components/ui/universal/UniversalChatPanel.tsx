@@ -7,6 +7,7 @@
 
 import React, { useEffect, useMemo } from 'react';
 import { ChatTabBar } from '@/components/universal/chat/ChatTabBar';
+import { EnrichedMessage, ClaudeCodeIndicator } from '@/components/universal/chat';
 import { useChatSession } from '@/hooks/useChatSession';
 import { useChatTabs } from '@/hooks/useChatTabs';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,7 +16,9 @@ import {
   DEFAULT_CHAT_CONFIG,
   ClaudeCodeContext,
   ChatRole,
-  ChatStatus
+  ChatStatus,
+  EnrichedMessage as EnrichedMessageType,
+  ClaudeCodeAction
 } from '@/types/chat/universal';
 
 interface UniversalChatPanelComponentProps extends UniversalChatPanelProps {
@@ -58,6 +61,9 @@ const UniversalChatPanel: React.FC<UniversalChatPanelComponentProps> = ({
   // État pour la zone de saisie
   const [inputValue, setInputValue] = React.useState('');
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  
+  // État pour les actions Claude Code actives
+  const [activeActions, setActiveActions] = React.useState<ClaudeCodeAction[]>([]);
   
   // Gestion des onglets avec valeurs par défaut pour éviter les erreurs
   const {
@@ -161,17 +167,104 @@ const UniversalChatPanel: React.FC<UniversalChatPanelComponentProps> = ({
       // Ajouter le message utilisateur
       setLocalMessages(prev => [...prev, userMessage]);
 
-      // Simuler une réponse de l'agent après un délai
-      setTimeout(() => {
-        const agentMessage = {
-          id: `agent_${Date.now()}`,
-          role: 'assistant' as ChatRole,
-          content: `Analyse du code : "${content}". Cette fonctionnalité sera disponible prochainement avec l'intégration complète de l'IA.`,
-          timestamp: new Date(),
-          status: 'sent' as ChatStatus
-        };
-        setLocalMessages(prev => [...prev, agentMessage]);
-      }, 1000);
+      // Créer des actions Claude Code pour démonstration
+      const investigationAction: ClaudeCodeAction = {
+        type: 'investigation',
+        status: 'in_progress',
+        description: 'Analyse du code en cours...',
+        progress: 0,
+        startTime: new Date(),
+        tools: ['codebase_search', 'grep', 'read_file'],
+        files: [],
+        details: `Investigation de: "${content}"`
+      };
+
+      setActiveActions([investigationAction]);
+
+      // Simuler le progrès de l'action
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += 20;
+        setActiveActions(prev => prev.map(action => 
+          action.type === 'investigation' 
+            ? { ...action, progress, status: progress >= 100 ? 'completed' : 'in_progress' }
+            : action
+        ));
+        
+        if (progress >= 100) {
+          clearInterval(progressInterval);
+          
+          // Créer un message enrichi avec les résultats
+          const enrichedMessage: EnrichedMessageType = {
+            id: `agent_${Date.now()}`,
+            role: 'assistant' as ChatRole,
+            content: `J'ai analysé votre requête "${content}" et trouvé plusieurs éléments intéressants dans votre codebase.`,
+            timestamp: new Date(),
+            status: 'sent' as ChatStatus,
+            actions: [{
+              ...investigationAction,
+              status: 'completed',
+              progress: 100,
+              endTime: new Date(),
+              files: selectedItem ? [selectedItem.path || ''] : []
+            }],
+            codePreview: selectedItem ? {
+              content: `// Exemple de code analysé
+function analyzeCode(input: string) {
+  // Cette fonction simule l'analyse du code
+  console.log('Analyzing:', input);
+  return {
+    complexity: 'medium',
+    suggestions: ['Optimiser les performances', 'Ajouter des tests']
+  };
+}`,
+              language: 'typescript',
+              highlightedLines: [2, 4],
+              startLine: 1,
+              endLine: 8
+            } : undefined,
+            analysisResults: selectedItem ? [{
+              filePath: selectedItem.path || '/example.ts',
+              language: 'typescript',
+              complexity: 'medium' as const,
+              dependencies: ['react', '@types/node'],
+              functions: [
+                {
+                  name: 'analyzeCode',
+                  lineStart: 1,
+                  lineEnd: 8,
+                  parameters: ['input: string'],
+                  returnType: 'object'
+                }
+              ],
+              classes: [],
+              lastAnalyzed: new Date()
+            }] : undefined,
+            toolsUsed: [
+              {
+                name: 'codebase_search',
+                description: 'Recherche sémantique dans la base de code',
+                isActive: true,
+                usageCount: 1
+              },
+              {
+                name: 'read_file',
+                description: 'Lecture et analyse de fichiers',
+                isActive: true,
+                usageCount: 1
+              }
+            ],
+            investigationContext: {
+              query: content,
+              scope: selectedItem ? [selectedItem.path || ''] : ['workspace'],
+              findings: ['Fonction analysée', 'Dépendances identifiées', 'Suggestions générées']
+            }
+          };
+
+          setLocalMessages(prev => [...prev, enrichedMessage]);
+          setActiveActions([]);
+        }
+      }, 500);
 
       // Déclencher callback d'investigation si défini
       if (onInvestigationStart) {
@@ -318,7 +411,7 @@ const UniversalChatPanel: React.FC<UniversalChatPanelComponentProps> = ({
         onTabRename={renameTab}
       />
 
-      {/* Zone des messages - Style Cursor */}
+      {/* Zone des messages - Style Cursor avec nouveaux composants */}
       <div className="flex-1 overflow-y-auto bg-gray-900">
         {displayMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8">
@@ -348,74 +441,32 @@ const UniversalChatPanel: React.FC<UniversalChatPanelComponentProps> = ({
           </div>
         ) : (
           <div className="space-y-6 p-4">
+            {/* Indicateur des actions Claude Code actives */}
+            {activeActions.length > 0 && (
+              <ClaudeCodeIndicator actions={activeActions} />
+            )}
+            
+            {/* Messages avec nouveau composant enrichi */}
             {displayMessages.map((message, index) => (
-              <div key={message.id || index} className="flex flex-col">
-                                 {message.role === 'user' ? (
-                   /* Message utilisateur - Bulle bleue */
-                   <div className="flex justify-end mb-4">
-                     <div className="max-w-3xl">
-                       <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-lg">
-                         <div className="text-sm whitespace-pre-wrap">{message.content}</div>
-                       </div>
-                       <div className="text-xs text-gray-500 mt-1 text-right">
-                         {typeof message.timestamp === 'string' 
-                           ? new Date(message.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-                           : message.timestamp instanceof Date 
-                             ? message.timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-                             : '--:--'
-                         }
-                       </div>
-                     </div>
-                   </div>
-                                 ) : (
-                   /* Message assistant - Texte libre sans en-tête */
-                   <div className="mb-6">
-                     {/* Contenu du message - flux libre */}
-                     <div className="text-gray-200 whitespace-pre-wrap leading-relaxed text-sm">
-                       {message.content}
-                     </div>
-                     
-                     {/* Actions sur le message */}
-                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-700">
-                       <div className="flex items-center space-x-2">
-                         <button className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700 transition-colors">
-                           Copier
-                         </button>
-                         <button className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700 transition-colors">
-                           Réutiliser
-                         </button>
-                       </div>
-                       <div className="flex items-center space-x-1">
-                         <button className="text-gray-400 hover:text-white p-1 rounded hover:bg-gray-700 transition-colors">
-                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                           </svg>
-                         </button>
-                         <button className="text-gray-400 hover:text-white p-1 rounded hover:bg-gray-700 transition-colors">
-                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                           </svg>
-                         </button>
-                       </div>
-                     </div>
-                   </div>
-                )}
-              </div>
+              <EnrichedMessage 
+                key={message.id || index} 
+                message={message as EnrichedMessageType}
+              />
             ))}
             
-                         {/* Indicateur de chargement sans avatar */}
-             {effectiveIsLoading && (
-               <div className="mb-6">
-                 <div className="flex items-center space-x-2">
-                   <div className="flex space-x-1">
-                     <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                     <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                     <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                   </div>
-                   <span className="text-sm text-gray-400">Claude réfléchit...</span>
-                 </div>
-               </div>
-             )}
+            {/* Indicateur de chargement */}
+            {effectiveIsLoading && (
+              <div className="mb-6">
+                <div className="flex items-center space-x-2">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                  <span className="text-sm text-gray-400">Claude réfléchit...</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

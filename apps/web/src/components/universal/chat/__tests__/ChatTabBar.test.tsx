@@ -86,8 +86,8 @@ describe('ChatTabBar', () => {
     const tab = screen.getByText('Documentation 1').closest('div')
     fireEvent.mouseEnter(tab!)
     
-    const closeButton = screen.getByTitle('Fermer l\'onglet')
-    fireEvent.click(closeButton)
+    const closeButtons = screen.getAllByTitle('Fermer l\'onglet')
+    fireEvent.click(closeButtons[1]) // Fermer le second onglet (Documentation 1)
     expect(mockProps.onTabClose).toHaveBeenCalledWith('tab-2')
   })
 
@@ -98,8 +98,8 @@ describe('ChatTabBar', () => {
     const tab = screen.getByText('Analyse 1').closest('div')
     fireEvent.mouseEnter(tab!)
     
-    const editButton = screen.getByTitle('Renommer l\'onglet')
-    fireEvent.click(editButton)
+    const editButtons = screen.getAllByTitle('Renommer l\'onglet')
+    fireEvent.click(editButtons[0]) // Renommer le premier onglet (Analyse 1)
     
     // Un input devrait apparaître
     const input = screen.getByDisplayValue('Analyse 1')
@@ -142,8 +142,8 @@ describe('ChatTabBar', () => {
     const tab = screen.getByText('Analyse 1').closest('div')
     fireEvent.mouseEnter(tab!)
     
-    const editButton = screen.getByTitle('Renommer l\'onglet')
-    fireEvent.click(editButton)
+    const editButtons = screen.getAllByTitle('Renommer l\'onglet')
+    fireEvent.click(editButtons[0]) // Renommer le premier onglet (Analyse 1)
     
     const input = screen.getByDisplayValue('Analyse 1')
     

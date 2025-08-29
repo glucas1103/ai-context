@@ -16,6 +16,7 @@ import {
   MONACO_CONFIG, 
   ANALYSIS_AGENT_CONFIG 
 } from '@/types/components/universal'
+import type { ChatMessage } from '@/types/chat/universal'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import ErrorScreen from '@/components/ui/ErrorScreen'
 
@@ -126,8 +127,14 @@ export default function WorkspaceContextPage({
     }
   }
 
-  // Gérer les messages du chat
-  const handleSendMessage = async (message: string) => {
+  // Gérer les messages du chat  
+  const handleSendMessage = (message: ChatMessage) => {
+    // Adapter pour l'ancien système - extraire le contenu du message
+    const messageContent = typeof message === 'string' ? message : message.content;
+    return handleLegacySendMessage(messageContent);
+  };
+  
+  const handleLegacySendMessage = async (message: string) => {
     const userMessage = {
       id: Date.now().toString(),
       type: 'user' as const,
@@ -182,12 +189,9 @@ export default function WorkspaceContextPage({
       rightPanel={
         <UniversalChatPanel
           agentType="analysis"
-          selectedItem={selectedFile}
+          selectedItem={selectedFile ? { path: selectedFile.path, name: selectedFile.name } : undefined}
           workspaceId={workspaceId}
-          onSendMessage={handleSendMessage}
-          messages={messages}
-          isLoading={isChatLoading}
-          agentConfig={ANALYSIS_AGENT_CONFIG}
+          onMessageSent={handleSendMessage}
         />
       }
       config={{
