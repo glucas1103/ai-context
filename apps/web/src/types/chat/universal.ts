@@ -379,3 +379,60 @@ export const ANTHROPIC_STREAM_CONFIG: AnthropicStreamConfig = {
   stream: true
 };
 
+// =====================================
+// Nouveaux types pour Story 1.6.2 - Claude Code SDK
+// =====================================
+
+export interface ClaudeCodeSDKConfig {
+  apiKey?: string;
+  model: 'sonnet' | 'opus' | 'haiku';
+  tools: string[];
+  temperature: number;
+  maxTokens: number;
+  timeout: number;
+  workspacePath: string;
+}
+
+export interface ClaudeCodeInvestigationOptions {
+  useCache: boolean;
+  maxDepth: number;
+  includeTests: boolean;
+  excludePatterns: string[];
+}
+
+export interface ClaudeCodeStreamingResponse {
+  delta: string;
+  isComplete: boolean;
+  metadata?: {
+    toolsUsed?: string[];
+    filesAnalyzed?: string[];
+    investigationSteps?: InvestigationStep[];
+    progress?: number;
+  };
+}
+
+export interface ClaudeCodeUsageStats {
+  totalQueries: number;
+  toolUsage: Record<string, number>;
+  averageResponseTime: number;
+  cacheHitRate: number;
+  lastUsed: Date;
+}
+
+// Extension des interfaces existantes pour Claude Code SDK
+export interface ExtendedChatMessage extends ChatMessage {
+  claudeCodeMetadata?: {
+    sdkVersion?: string;
+    modelUsed?: string;
+    tokenUsage?: number;
+    responseTime?: number;
+    cacheHit?: boolean;
+  };
+}
+
+export interface ExtendedChatSession extends ChatSession {
+  claudeCodeConfig?: ClaudeCodeSDKConfig;
+  investigationOptions?: ClaudeCodeInvestigationOptions;
+  usageStats?: ClaudeCodeUsageStats;
+}
+

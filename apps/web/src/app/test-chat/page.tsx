@@ -20,18 +20,27 @@ export default function TestChatPage() {
         </div>
         
         <div className="mt-4 p-4 bg-gray-800 rounded-lg">
-          <h2 className="text-lg font-semibold text-white mb-2">Interface Style Cursor</h2>
+          <h2 className="text-lg font-semibold text-white mb-2">Test Claude Code SDK - Story 1.6.2</h2>
           <p className="text-gray-300 text-sm mb-2">
-            Cette interface reproduit le style de Cursor avec :
+            Interface de test pour Claude Code avec :
           </p>
           <ul className="text-gray-300 text-sm space-y-1">
-            <li>• Onglets en haut avec boutons de fenêtre</li>
-            <li>• Bulles bleues pour les messages utilisateur</li>
-            <li>• Flux libre pour les réponses de l'agent</li>
-            <li>• Avatar Claude avec gradient</li>
-            <li>• Actions sur les messages (Copier, Réutiliser, etc.)</li>
-            <li>• Suggestions rapides</li>
+            <li>• 🤖 Claude Code SDK intégré (ultra-simple)</li>
+            <li>• 🔍 Investigation autonome du code</li>
+            <li>• 🧠 Raisonnement multi-étapes natif</li>
+            <li>• 📁 Outils: Read, Grep, Glob, LS</li>
+            <li>• 💬 Interface style Cursor réutilisée</li>
           </ul>
+          
+          <div className="mt-4 p-3 bg-blue-900/30 border border-blue-500/30 rounded-lg">
+            <h3 className="text-sm font-semibold text-blue-300 mb-2">💡 Messages de test suggérés :</h3>
+            <div className="space-y-1 text-xs text-blue-200">
+              <p>• "Bonjour Claude Code, peux-tu analyser le fichier package.json ?"</p>
+              <p>• "Quelles sont les dépendances principales de ce projet ?"</p>
+              <p>• "Analyse la structure du dossier src/"</p>
+              <p>• "Trouve tous les fichiers TypeScript dans le projet"</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

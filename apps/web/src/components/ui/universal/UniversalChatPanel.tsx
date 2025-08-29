@@ -11,6 +11,7 @@ import { EnrichedMessage, ClaudeCodeIndicator } from '@/components/universal/cha
 import { useChatSession } from '@/hooks/useChatSession';
 import { useChatTabs } from '@/hooks/useChatTabs';
 import { useAuth } from '@/hooks/useAuth';
+import { useSimpleClaudeCode } from '@/hooks/useSimpleClaudeCode';
 import { 
   UniversalChatPanelProps,
   DEFAULT_CHAT_CONFIG,
@@ -102,6 +103,14 @@ const UniversalChatPanel: React.FC<UniversalChatPanelComponentProps> = ({
     updateContext
   } = useChatSession(workspaceId || '', effectiveContext, activeTab?.sessionId);
 
+  // Hook Claude Code Ultra-Simple - RÉVISÉ Story 1.6.2
+  const claudeCode = useSimpleClaudeCode({
+    workspaceId: workspaceId || '',
+    sessionId: activeTab?.sessionId, // Session ID de l'onglet actif
+    // API key gérée côté serveur pour la sécurité - pas d'exposition côté client
+    apiKey: undefined
+  });
+
   // Gestion des callbacks - TOUS LES useEffect DOIVENT ÊTRE AVANT LES RETURNS
   useEffect(() => {
     if (error && onError) {
@@ -152,132 +161,93 @@ const UniversalChatPanel: React.FC<UniversalChatPanelComponentProps> = ({
     );
   }
 
-  // Gestionnaire d'envoi de message (version simplifiée pour les tests)
+  // Gestionnaire d'envoi de message avec Claude Code SDK - Story 1.6.2
   const handleSendMessage = async (content: string) => {
     try {
-      // Créer le message utilisateur
-      const userMessage = {
-        id: `user_${Date.now()}`,
-        role: 'user' as ChatRole,
-        content: content,
-        timestamp: new Date(),
-        status: 'sent' as ChatStatus
-      };
-
-      // Ajouter le message utilisateur
-      setLocalMessages(prev => [...prev, userMessage]);
-
-      // Créer des actions Claude Code pour démonstration
-      const investigationAction: ClaudeCodeAction = {
-        type: 'investigation',
-        status: 'in_progress',
-        description: 'Analyse du code en cours...',
-        progress: 0,
-        startTime: new Date(),
-        tools: ['codebase_search', 'grep', 'read_file'],
-        files: [],
-        details: `Investigation de: "${content}"`
-      };
-
-      setActiveActions([investigationAction]);
-
-      // Simuler le progrès de l'action
-      let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += 20;
-        setActiveActions(prev => prev.map(action => 
-          action.type === 'investigation' 
-            ? { ...action, progress, status: progress >= 100 ? 'completed' : 'in_progress' }
-            : action
-        ));
-        
-        if (progress >= 100) {
-          clearInterval(progressInterval);
-          
-          // Créer un message enrichi avec les résultats
-          const enrichedMessage: EnrichedMessageType = {
-            id: `agent_${Date.now()}`,
-            role: 'assistant' as ChatRole,
-            content: `J'ai analysé votre requête "${content}" et trouvé plusieurs éléments intéressants dans votre codebase.`,
-            timestamp: new Date(),
-            status: 'sent' as ChatStatus,
-            actions: [{
-              ...investigationAction,
-              status: 'completed',
-              progress: 100,
-              endTime: new Date(),
-              files: selectedItem ? [selectedItem.path || ''] : []
-            }],
-            codePreview: selectedItem ? {
-              content: `// Exemple de code analysé
-function analyzeCode(input: string) {
-  // Cette fonction simule l'analyse du code
-  console.log('Analyzing:', input);
-  return {
-    complexity: 'medium',
-    suggestions: ['Optimiser les performances', 'Ajouter des tests']
-  };
-}`,
-              language: 'typescript',
-              highlightedLines: [2, 4],
-              startLine: 1,
-              endLine: 8
-            } : undefined,
-            analysisResults: selectedItem ? [{
-              filePath: selectedItem.path || '/example.ts',
-              language: 'typescript',
-              complexity: 'medium' as const,
-              dependencies: ['react', '@types/node'],
-              functions: [
-                {
-                  name: 'analyzeCode',
-                  lineStart: 1,
-                  lineEnd: 8,
-                  parameters: ['input: string'],
-                  returnType: 'object'
-                }
-              ],
-              classes: [],
-              lastAnalyzed: new Date()
-            }] : undefined,
-            toolsUsed: [
-              {
-                name: 'codebase_search',
-                description: 'Recherche sémantique dans la base de code',
-                isActive: true,
-                usageCount: 1
-              },
-              {
-                name: 'read_file',
-                description: 'Lecture et analyse de fichiers',
-                isActive: true,
-                usageCount: 1
-              }
-            ],
-            investigationContext: {
-              query: content,
-              scope: selectedItem ? [selectedItem.path || ''] : ['workspace'],
-              findings: ['Fonction analysée', 'Dépendances identifiées', 'Suggestions générées']
-            }
-          };
-
-          setLocalMessages(prev => [...prev, enrichedMessage]);
-          setActiveActions([]);
-        }
-      }, 500);
+      // Vérifier qu'on a une session active
+      if (!activeTab?.sessionId) {
+        console.error('Aucune session active');
+        return;
+      }
 
       // Déclencher callback d'investigation si défini
       if (onInvestigationStart) {
         onInvestigationStart(content);
       }
 
-      // Marquer l'onglet comme modifié
-      if (activeTab) {
-        markTabDirty(activeTab.id, true);
+      // Utiliser Claude Code SDK directement - Version simplifiée
+      try {
+        const response = await claudeCode.sendMessage(content);
+
+        // Créer un message enrichi simple
+        const enrichedMessage: EnrichedMessageType = {
+          id: `assistant_${Date.now()}`,
+          role: 'assistant' as ChatRole,
+          content: response,
+          timestamp: new Date(),
+          status: 'sent' as ChatStatus,
+          metadata: {
+            claudeActions: ['investigation'],
+            toolsUsed: ['Claude Code SDK']
+          }
+        };
+
+        // Ajouter le message enrichi à la liste locale pour l'affichage immédiat
+        setLocalMessages(prev => [...prev, enrichedMessage]);
+
+        // Marquer l'onglet comme modifié
+        if (activeTab) {
+          markTabDirty(activeTab.id, true);
+        }
+
+        // Déclencher callback de fin d'investigation si défini
+        if (onInvestigationComplete) {
+          const results = [{
+            tool: 'Claude Code SDK',
+            query: content,
+            result: 'Investigation terminée',
+            files: [effectiveContext.selectedFile || effectiveContext.workspacePath || '']
+          }];
+          onInvestigationComplete(results);
+        }
+      } catch (error) {
+        console.error('Erreur Claude Code:', error);
+        // Afficher un message d'erreur simple
+        const errorMessage: EnrichedMessageType = {
+          id: `error_${Date.now()}`,
+          role: 'assistant' as ChatRole,
+          content: 'Désolé, j\'ai rencontré une erreur lors de l\'analyse de votre demande. Pouvez-vous réessayer ?',
+          timestamp: new Date(),
+          status: 'error' as ChatStatus
+        };
+        setLocalMessages(prev => [...prev, errorMessage]);
       }
 
     } catch (err) {
       console.error('Erreur lors de l\'envoi du message:', err);
+      
+      // Créer un message d'erreur
+      const errorMessage: EnrichedMessageType = {
+        id: `error_${Date.now()}`,
+        role: 'assistant' as ChatRole,
+        content: 'Désolé, j\'ai rencontré une erreur lors de l\'analyse de votre demande. Pouvez-vous reformuler votre question ?',
+        timestamp: new Date(),
+        status: 'error' as ChatStatus,
+        actions: [{
+          type: 'investigation',
+          status: 'failed',
+          description: 'Erreur lors de l\'investigation',
+          progress: 0,
+          startTime: new Date(),
+          endTime: new Date(),
+          tools: [],
+          files: [],
+          details: err instanceof Error ? err.message : 'Erreur inconnue'
+        }]
+      };
+
+      setLocalMessages(prev => [...prev, errorMessage]);
+      setActiveActions([]);
     }
   };
 
@@ -416,26 +386,37 @@ function analyzeCode(input: string) {
         {displayMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8">
             <div className="text-6xl mb-4">🤖</div>
-            <h3 className="text-xl font-medium mb-2">Claude Analyste</h3>
+            <h3 className="text-xl font-medium mb-2">Claude Code Assistant</h3>
             <p className="text-sm text-center mb-6 max-w-md">
-              Je suis votre assistant IA spécialisé dans l'analyse de code et l'exploration de codebase.
+              Je suis votre assistant IA avec <strong>investigation autonome</strong> de votre codebase. 
+              Je peux explorer, analyser et comprendre votre code automatiquement.
             </p>
+            <div className="mb-4 text-xs text-center">
+              <div className="inline-flex items-center space-x-2 bg-blue-900/20 px-3 py-1 rounded-full border border-blue-500/20">
+                <span className="text-blue-400">⚡</span>
+                <span>Alimenté par Claude Code SDK</span>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3 text-xs text-center text-gray-500">
-              <div className="p-3 bg-gray-800 rounded-lg">
-                <div className="text-lg mb-1">💡</div>
-                <p>Analyser le code</p>
-              </div>
-              <div className="p-3 bg-gray-800 rounded-lg">
+              <div className="p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
                 <div className="text-lg mb-1">🔍</div>
-                <p>Explorer la codebase</p>
+                <p>Investigation autonome</p>
+                <p className="text-xs text-gray-600 mt-1">Read, Grep, Glob, LS</p>
               </div>
-              <div className="p-3 bg-gray-800 rounded-lg">
+              <div className="p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
+                <div className="text-lg mb-1">🧠</div>
+                <p>Raisonnement multi-étapes</p>
+                <p className="text-xs text-gray-600 mt-1">Analyse transparente</p>
+              </div>
+              <div className="p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
+                <div className="text-lg mb-1">📊</div>
+                <p>Analyse avancée</p>
+                <p className="text-xs text-gray-600 mt-1">Code & architecture</p>
+              </div>
+              <div className="p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
                 <div className="text-lg mb-1">📝</div>
-                <p>Améliorer la doc</p>
-              </div>
-              <div className="p-3 bg-gray-800 rounded-lg">
-                <div className="text-lg mb-1">🚀</div>
-                <p>Optimiser le code</p>
+                <p>Documentation auto</p>
+                <p className="text-xs text-gray-600 mt-1">Génération intelligente</p>
               </div>
             </div>
           </div>
@@ -503,14 +484,16 @@ function analyzeCode(input: string) {
              </button>
           </div>
           
-                     {/* Suggestions rapides style Cursor */}
+                     {/* Suggestions rapides Claude Code - Story 1.6.2 */}
            {displayMessages.length === 0 && (
              <div className="mt-3 flex flex-wrap gap-2">
                {[
-                 "Analysez ce fichier",
-                 "Expliquez cette fonction", 
-                 "Trouvez les dépendances",
-                 "Identifiez les problèmes"
+                 "Analysez l'architecture de ce projet",
+                 "Investiguer les patterns de sécurité", 
+                 "Explorer les dépendances critiques",
+                 "Identifier les problèmes de performance",
+                 "Générer la documentation manquante",
+                 "Expliquer ce composant React"
                ].map((suggestion, index) => (
                  <button
                    key={index}
@@ -544,3 +527,4 @@ function analyzeCode(input: string) {
 };
 
 export default UniversalChatPanel;
+export { UniversalChatPanel };
