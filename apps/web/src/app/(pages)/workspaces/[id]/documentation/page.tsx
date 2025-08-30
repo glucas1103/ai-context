@@ -6,14 +6,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ThreePanelsLayout from '@/components/layout/ThreePanelsLayout';
 import UniversalTreePanel from '@/components/ui/universal/UniversalTreePanel';
 import UniversalContentPanel from '@/components/ui/universal/UniversalContentPanel';
-import UniversalChatPanel from '@/components/ui/universal/UniversalChatPanel';
+import ClaudeCodePanel from '@/components/workspace/ClaudeCodePanelNew';
 import { 
   DOC_ICONS, 
   TIPTAP_CONFIG, 
   DOCUMENTATION_AGENT_CONFIG 
 } from '@/types/components/universal';
 import { DocumentationNode, LegacyChatMessage, DocumentationApiResponse } from '@/types/api/documentation';
-import type { ChatMessage } from '@/types/chat/universal';
 
 interface DocumentationPageProps {
   params: Promise<{
@@ -32,8 +31,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
   const [fileContent, setFileContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [messages, setMessages] = useState<LegacyChatMessage[]>([]);
-  const [isChatLoading, setIsChatLoading] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
 
 
@@ -151,36 +149,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
     }
   }, [selectedFile, saveFileContent]);
 
-  // Gérer les messages du chat
-  const handleSendMessage = useCallback((message: ChatMessage) => {
-    // Adapter pour l'ancien système - extraire le contenu du message
-    const messageContent = typeof message === 'string' ? message : message.content;
-    return handleLegacySendMessage(messageContent);
-  }, []);
-  
-  const handleLegacySendMessage = useCallback(async (message: string) => {
-    const userMessage: LegacyChatMessage = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: message,
-      timestamp: new Date().toISOString(),
-    };
 
-    setMessages(prev => [...prev, userMessage]);
-    setIsChatLoading(true);
-
-    // Simuler une réponse de l'IA (à remplacer par l'intégration réelle)
-    setTimeout(() => {
-      const assistantMessage: LegacyChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: `Je comprends votre demande : "${message}". Cette fonctionnalité sera disponible prochainement avec l'intégration complète de l'IA.`,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-      setIsChatLoading(false);
-    }, 1500);
-  }, []);
 
   // Charger les données au montage du composant
   useEffect(() => {
@@ -271,11 +240,8 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
             />
           }
           rightPanel={
-            <UniversalChatPanel
-              agentType="documentation"
-              selectedItem={selectedFile ? { path: selectedFile.path, name: selectedFile.name } : undefined}
+            <ClaudeCodePanel
               workspaceId={workspaceId!}
-              onMessageSent={handleSendMessage}
             />
           }
           config={{

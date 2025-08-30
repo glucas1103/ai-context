@@ -1,5 +1,0 @@
-# Page snapshot
-
-```yaml
-- text: "{\"message\":\"No API key found in request\",\"hint\":\"No `apikey` request header or url param was found.\"}"
-```

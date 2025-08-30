@@ -10,13 +10,11 @@ import { FileTreeNode, WorkspaceData } from '@/types/api/workspace'
 import ThreePanelsLayout from '@/components/layout/ThreePanelsLayout'
 import UniversalTreePanel from '@/components/ui/universal/UniversalTreePanel'
 import UniversalContentPanel from '@/components/ui/universal/UniversalContentPanel'
-import UniversalChatPanel from '@/components/ui/universal/UniversalChatPanel'
+import ClaudeCodePanel from '@/components/workspace/ClaudeCodePanelNew'
 import { 
   CODE_ICONS, 
-  MONACO_CONFIG, 
-  ANALYSIS_AGENT_CONFIG 
+  MONACO_CONFIG
 } from '@/types/components/universal'
-import type { ChatMessage } from '@/types/chat/universal'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import ErrorScreen from '@/components/ui/ErrorScreen'
 
@@ -33,8 +31,7 @@ export default function WorkspaceContextPage({
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingContent, setIsLoadingContent] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [messages, setMessages] = useState<any[]>([])
-  const [isChatLoading, setIsChatLoading] = useState(false)
+
   
   const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
@@ -127,36 +124,7 @@ export default function WorkspaceContextPage({
     }
   }
 
-  // Gérer les messages du chat  
-  const handleSendMessage = (message: ChatMessage) => {
-    // Adapter pour l'ancien système - extraire le contenu du message
-    const messageContent = typeof message === 'string' ? message : message.content;
-    return handleLegacySendMessage(messageContent);
-  };
-  
-  const handleLegacySendMessage = async (message: string) => {
-    const userMessage = {
-      id: Date.now().toString(),
-      type: 'user' as const,
-      content: message,
-      timestamp: new Date().toISOString(),
-    }
 
-    setMessages(prev => [...prev, userMessage])
-    setIsChatLoading(true)
-
-    // Simuler une réponse de l'IA (à remplacer par l'intégration réelle)
-    setTimeout(() => {
-      const assistantMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant' as const,
-        content: `Analyse du code : "${message}". Cette fonctionnalité sera disponible prochainement avec l'intégration complète de l'IA.`,
-        timestamp: new Date().toISOString(),
-      }
-      setMessages(prev => [...prev, assistantMessage])
-      setIsChatLoading(false)
-    }, 1500)
-  }
 
   if (isLoading) return <LoadingScreen />
   if (error) return <ErrorScreen error={error} />
@@ -187,11 +155,8 @@ export default function WorkspaceContextPage({
         />
       }
       rightPanel={
-        <UniversalChatPanel
-          agentType="analysis"
-          selectedItem={selectedFile ? { path: selectedFile.path, name: selectedFile.name } : undefined}
+        <ClaudeCodePanel
           workspaceId={workspaceId}
-          onMessageSent={handleSendMessage}
         />
       }
       config={{

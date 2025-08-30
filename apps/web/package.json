@@ -24,8 +24,8 @@
     "playwright:install": "playwright install"
   },
   "dependencies": {
+    "@anthropic-ai/claude-code": "^1.0.98",
     "@anthropic-ai/sdk": "^0.60.0",
-    "@instantlyeasy/claude-code-sdk-ts": "^0.3.3",
     "@mdxeditor/editor": "^3.42.0",
     "@monaco-editor/react": "^4.6.0",
     "@supabase/ssr": "^0.1.0",
