@@ -5,13 +5,14 @@ import { useClaudeCode } from '@/hooks/useClaudeCode';
 import { useChatSessions } from '@/hooks/useChatSessions';
 import { ClaudeCodeMessage, AgentStatus } from '@/types/claude-code';
 
+
 interface ClaudeCodePanelProps {
   workspaceId: string;
 }
 
 const ClaudeCodePanel: React.FC<ClaudeCodePanelProps> = ({ workspaceId }) => {
   const [input, setInput] = useState('');
-  const [maxTurns, setMaxTurns] = useState(5);
+  const [maxTurns, setMaxTurns] = useState(50);
   const [showIntermediateSteps, setShowIntermediateSteps] = useState(true);
   const [showNewSessionDialog, setShowNewSessionDialog] = useState(false);
   const [newSessionName, setNewSessionName] = useState('');
@@ -179,7 +180,6 @@ const ClaudeCodePanel: React.FC<ClaudeCodePanelProps> = ({ workspaceId }) => {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <div className="text-center text-gray-500 mt-8">
-            <div className="text-4xl mb-4">🤖</div>
             <p className="text-lg mb-2">Assistant Claude Code</p>
             <p className="text-sm">Expert en analyse de code et documentation technique</p>
             <div className="mt-4 text-xs text-gray-600">
@@ -194,113 +194,73 @@ const ClaudeCodePanel: React.FC<ClaudeCodePanelProps> = ({ workspaceId }) => {
           </div>
         )}
 
-        {messages
-          .filter(message => showIntermediateSteps || !message.isIntermediate)
-          .map((message) => (
-          <div key={message.id} className={`flex ${
-            message.role === 'user' ? 'justify-end' : 'justify-start'
-          }`}>
-            <div className={`max-w-[85%] px-4 py-2 rounded-lg ${
-              message.role === 'user'
-                ? 'bg-blue-600 text-white'
-                : message.role === 'system'
-                ? 'bg-yellow-900/20 text-yellow-400 border-l-4 border-yellow-600'
-                : message.isIntermediate
-                ? 'bg-gray-800 text-gray-400 border-l-4 border-gray-600 italic'
-                : 'bg-gray-700 text-gray-200'
-            }`}>
-              {message.role === 'system' && (
-                <div className="text-xs font-semibold mb-1 text-yellow-500">
-                  SYSTÈME
+        {messages.map((message) => {
+          // Messages d'utilisateur - bulles bleues
+          if (message.role === 'user') {
+            return (
+              <div key={message.id} className="flex justify-end">
+                <div className="max-w-[85%] px-4 py-2 rounded-lg bg-blue-600 text-white">
+                  <div className="whitespace-pre-wrap break-words">{message.content}</div>
                 </div>
-              )}
-              {message.isIntermediate && message.role === 'assistant' && (
-                <div className="text-xs font-semibold mb-1 text-gray-500">
-                  🤔 RÉFLEXION
-                </div>
-              )}
-
-              <div className="whitespace-pre-wrap break-words">{message.content}</div>
-
-              {message.streamData && (
-                <details className="mt-2 text-xs">
-                  <summary className="cursor-pointer text-gray-500 hover:text-gray-300">
-                    Détails techniques
-                  </summary>
-                  <pre className="mt-1 p-2 bg-gray-800 text-green-400 rounded text-xs overflow-x-auto">
-                    {JSON.stringify(message.streamData, null, 2)}
-                  </pre>
-                </details>
-              )}
-
-              {message.metadata && !message.isIntermediate && (
-                <div className="text-xs mt-2 opacity-70 space-x-3">
-                  <span>⏱️ {formatDuration(message.metadata.duration_ms)}</span>
-                  <span>🔄 {message.metadata.num_turns} tours</span>
-                  <span>💰 {formatCost(message.metadata.total_cost_usd)}</span>
-                </div>
-              )}
-
-              {/* Boutons d'action pour les messages de limite de tours */}
-              {message.role === 'system' && message.content.includes('Limite de tours atteinte') && (
-                <div className="mt-3 flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => continueWithMoreTurns(5)}
-                    disabled={isLoading}
-                    className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors disabled:opacity-50"
-                  >
-                    +5 tours
-                  </button>
-                  <button
-                    onClick={() => continueWithMoreTurns(10)}
-                    disabled={isLoading}
-                    className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors disabled:opacity-50"
-                  >
-                    +10 tours
-                  </button>
-                  <button
-                    onClick={() => setAdaptiveTurns(true)}
-                    disabled={isLoading || adaptiveTurns}
-                    className="px-3 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors disabled:opacity-50"
-                  >
-                    Mode adaptatif
-                  </button>
-                </div>
-              )}
-
-              <div className="text-xs mt-1 opacity-70">
-                {message.timestamp.toLocaleTimeString()}
               </div>
-            </div>
-          </div>
-        ))}
-
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-700 text-gray-200 px-4 py-2 rounded-lg">
-              <div className="flex items-center justify-between space-x-4">
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
-                  <span>Agent en cours de réflexion...</span>
-                  {elapsedTime > 0 && (
-                    <span className="text-xs text-gray-400">
-                      ({elapsedTime}s)
-                    </span>
-                  )}
+            );
+          }
+          
+          // Messages d'outils - petite bulle jaune compacte
+          if (message.isToolUsage) {
+            return (
+              <div key={message.id} className="flex justify-start">
+                <div className="inline-block px-3 py-1 rounded-full bg-yellow-900/20 text-yellow-400 border border-yellow-600 text-sm">
+                  {message.content}
                 </div>
-                {canStop && (
-                  <button
-                    onClick={stopThinking}
-                    className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
-                    title="Arrêter la réflexion (Escape)"
-                  >
-                    ⏹️ Stop
-                  </button>
-                )}
               </div>
+            );
+          }
+          
+          // Messages système (limite de tours, etc.) - bulles jaunes
+          if (message.role === 'system') {
+            return (
+              <div key={message.id} className="flex justify-start">
+                <div className="max-w-[85%] px-4 py-2 rounded-lg bg-yellow-900/20 text-yellow-400 border-l-4 border-yellow-600">
+                  <div className="whitespace-pre-wrap break-words">{message.content}</div>
+                </div>
+              </div>
+            );
+          }
+          
+          // Messages assistant - texte direct sans bulle
+          return (
+            <div key={message.id} className="text-gray-300 whitespace-pre-wrap break-words">
+              {message.content}
             </div>
-          </div>
+          );
+        })}
+
+        {/* Boutons d'action pour les messages de limite de tours atteinte */}
+        {messages.map((message) => 
+          message.role === 'system' && message.content.includes('Limite de') && message.content.includes('tours atteinte') ? (
+            <div key={`buttons-${message.id}`} className="mt-3 flex gap-2 flex-wrap">
+              <button
+                onClick={() => continueWithMoreTurns(50)}
+                disabled={isLoading}
+                className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors disabled:opacity-50"
+              >
+                Continuer (+50 tours)
+              </button>
+              <button
+                onClick={() => {
+                  sendMessage('Peux-tu me donner un résumé de ce que tu as trouvé jusqu\'ici et les points clés de ton analyse ?');
+                }}
+                disabled={isLoading}
+                className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors disabled:opacity-50"
+              >
+                Réponse partielle
+              </button>
+            </div>
+          ) : null
         )}
+
+
 
         <div ref={messagesEndRef} />
       </div>
@@ -338,73 +298,14 @@ const ClaudeCodePanel: React.FC<ClaudeCodePanelProps> = ({ workspaceId }) => {
           )}
         </div>
 
-        {/* Options */}
-        <div className="space-y-3 text-sm text-gray-400">
-          {/* Première ligne - Options de base */}
-          <div className="flex justify-between items-center">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={showIntermediateSteps}
-                onChange={(e) => setShowIntermediateSteps(e.target.checked)}
-                className="rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
-              />
-              <span>Étapes intermédiaires</span>
-            </label>
-            
-            <button
-              onClick={clearMessages}
-              className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-            >
-              Effacer
-            </button>
-          </div>
-
-          {/* Deuxième ligne - Gestion des tours */}
-          <div className="flex justify-between items-center">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={adaptiveTurns}
-                onChange={(e) => setAdaptiveTurns(e.target.checked)}
-                className="rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
-              />
-              <span>Tours adaptatifs</span>
-            </label>
-            
-            <div className="flex items-center space-x-2">
-              <span>Max tours:</span>
-              <input
-                type="number"
-                min="1"
-                max="20"
-                value={maxTurns}
-                onChange={(e) => setMaxTurns(parseInt(e.target.value) || 5)}
-                className="w-16 px-2 py-1 border border-gray-600 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={adaptiveTurns}
-              />
-            </div>
-          </div>
-
-          {/* Indicateur de complexité */}
-          {adaptiveTurns && (
-            <div className="flex justify-between items-center text-xs">
-              <span className="flex items-center space-x-2">
-                <span>Complexité:</span>
-                <span className={`px-2 py-1 rounded ${
-                  currentTaskComplexity === 'simple' ? 'bg-green-900 text-green-400' :
-                  currentTaskComplexity === 'complex' ? 'bg-red-900 text-red-400' :
-                  'bg-yellow-900 text-yellow-400'
-                }`}>
-                  {currentTaskComplexity === 'simple' ? 'Simple' : 
-                   currentTaskComplexity === 'complex' ? 'Complexe' : 'Moyenne'}
-                </span>
-              </span>
-              <span className="text-gray-500">
-                Tours alloués: {getAdaptiveTurns()}
-              </span>
-            </div>
-          )}
+        {/* Options simplifiées */}
+        <div className="flex justify-center">
+          <button
+            onClick={clearMessages}
+            className="px-4 py-1 text-xs bg-gray-700 text-gray-300 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Effacer l'historique
+          </button>
         </div>
       </div>
 

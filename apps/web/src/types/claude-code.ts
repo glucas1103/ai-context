@@ -9,6 +9,7 @@ export interface ClaudeCodeMessage {
   role: 'user' | 'assistant' | 'system';
   timestamp: Date;
   isIntermediate?: boolean; // Pour les étapes intermédiaires
+  isToolUsage?: boolean; // Pour identifier les messages d'utilisation d'outils
   metadata?: {
     duration_ms?: number;
     num_turns?: number;
@@ -75,4 +76,5 @@ export interface UseClaudeCodeReturn {
   stopThinking: () => void;
   canStop: boolean;
   thinkingStartTime: number | null;
+  currentAction: string | null;
 }

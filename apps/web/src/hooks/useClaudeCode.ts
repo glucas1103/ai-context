@@ -14,12 +14,13 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
-  const [maxTurns, setMaxTurns] = useState(5);
+  const [maxTurns, setMaxTurns] = useState(50);
   const [adaptiveTurns, setAdaptiveTurns] = useState(true);
   const [currentTaskComplexity, setCurrentTaskComplexity] = useState<'simple' | 'medium' | 'complex'>('medium');
   const [showIntermediateSteps, setShowIntermediateSteps] = useState(true);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [thinkingStartTime, setThinkingStartTime] = useState<number | null>(null);
+  const [currentAction, setCurrentAction] = useState<string | null>(null);
 
   // Récupérer le statut de l'agent au chargement
   useEffect(() => {
@@ -83,6 +84,12 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
     }
   };
 
+  
+
+
+
+
+
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
@@ -101,21 +108,12 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    
     setIsLoading(true);
     setError(null);
     setThinkingStartTime(Date.now());
 
-    // Ajouter un message informatif sur la complexité détectée
-    if (adaptiveTurns) {
-      const complexityMessage: ClaudeCodeMessage = {
-        id: `complexity-${Date.now()}`,
-        content: `🎯 Tâche ${complexity === 'simple' ? 'simple' : complexity === 'complex' ? 'complexe' : 'moyenne'} détectée - ${adaptiveMaxTurns} tours alloués`,
-        role: 'system',
-        timestamp: new Date(),
-        isIntermediate: true
-      };
-      setMessages(prev => [...prev, complexityMessage]);
-    }
+
 
     try {
       // Créer un nouveau AbortController pour cette requête
@@ -169,42 +167,80 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
               // Afficher les étapes intermédiaires
               const streamMessage = jsonData.message;
               
+              // Debug: afficher seulement les types de messages pour debug
+              console.log('Stream message type:', streamMessage.type, 'subtype:', streamMessage.subtype);
+              
               if (streamMessage.type === 'assistant') {
-                // Message de l'assistant (pensées, réflexions)
-                const assistantStep: ClaudeCodeMessage = {
-                  id: `stream-${Date.now()}-${Math.random()}`,
-                  content: streamMessage.message?.content?.[0]?.text || 'Assistant réfléchit...',
-                  role: 'assistant',
-                  timestamp: new Date(),
-                  isIntermediate: true,
-                  streamData: streamMessage
-                };
-                setMessages(prev => [...prev, assistantStep]);
+                // Message de l'assistant - afficher directement le contenu de Claude Code
+                const content = streamMessage.message?.content?.[0]?.text || '';
+                
+                if (content.trim()) {
+                  console.log('Assistant message:', content.substring(0, 200)); // Debug
+                  
+                  // Afficher directement le message de Claude Code sans formatage
+                  setCurrentAction(content);
+                  
+                  const assistantStep: ClaudeCodeMessage = {
+                    id: `stream-${Date.now()}-${Math.random()}`,
+                    content: content,
+                    role: 'assistant',
+                    timestamp: new Date(),
+                    isIntermediate: true,
+                    streamData: streamMessage
+                  };
+                  setMessages(prev => [...prev, assistantStep]);
+                }
+                
+                // Vérifier s'il y a des utilisations d'outils dans le message assistant
+                const messageContent = streamMessage.message?.content || [];
+                for (const contentItem of messageContent) {
+                  if (contentItem.type === 'tool_use') {
+                    console.log('Tool use in assistant message:', contentItem);
+                    
+                    // Créer un message informatif basé sur l'outil et ses paramètres
+                    let toolMessage = '';
+                    switch (contentItem.name) {
+                      case 'Glob':
+                        const pattern = contentItem.input?.pattern || 'pattern';
+                        toolMessage = `🔍 Recherche de fichiers avec le pattern: "${pattern}"`;
+                        break;
+                      case 'Read':
+                        const filePath = contentItem.input?.file_path || 'fichier';
+                        toolMessage = `📖 Lecture du fichier: "${filePath}"`;
+                        break;
+                      case 'Grep':
+                        const grepPattern = contentItem.input?.pattern || 'pattern';
+                        const grepPath = contentItem.input?.path || '';
+                        toolMessage = `🔎 Recherche "${grepPattern}"${grepPath ? ` dans ${grepPath}` : ''}`;
+                        break;
+                      case 'List':
+                        const dirPath = contentItem.input?.target_directory || 'dossier';
+                        toolMessage = `📁 Exploration du dossier: "${dirPath}"`;
+                        break;
+                      default:
+                        toolMessage = `🔧 Utilisation de l'outil: ${contentItem.name}`;
+                    }
+                    
+                    const toolUseMessage: ClaudeCodeMessage = {
+                      id: `tool-use-${Date.now()}-${Math.random()}`,
+                      content: toolMessage,
+                      role: 'system',
+                      timestamp: new Date(),
+                      isIntermediate: true,
+                      streamData: contentItem,
+                      isToolUsage: true // Nouveau flag pour identifier les messages d'outils
+                    };
+                    setMessages(prev => [...prev, toolUseMessage]);
+                  }
+                }
               } 
-              else if (streamMessage.type === 'system' && streamMessage.subtype === 'tool_use') {
-                // Utilisation d'outil
-                const toolStep: ClaudeCodeMessage = {
-                  id: `tool-${Date.now()}-${Math.random()}`,
-                  content: `🔧 Utilise l'outil: ${streamMessage.tool_name}`,
-                  role: 'system',
-                  timestamp: new Date(),
-                  isIntermediate: true,
-                  streamData: streamMessage
-                };
-                setMessages(prev => [...prev, toolStep]);
-              }
               else if (streamMessage.type === 'system' && streamMessage.subtype === 'init') {
-                // Initialisation de session
-                const initStep: ClaudeCodeMessage = {
-                  id: `init-${Date.now()}`,
-                  content: `🚀 Session démarrée (${streamMessage.session_id})`,
-                  role: 'system',
-                  timestamp: new Date(),
-                  isIntermediate: true,
-                  streamData: streamMessage
-                };
-                setMessages(prev => [...prev, initStep]);
+                // Initialisation de session - juste définir le sessionId sans afficher de message
                 setSessionId(streamMessage.session_id);
+              }
+              // Capturer tous les autres types de messages pour debug
+              else {
+                console.log('Other message type:', streamMessage.type);
               }
             }
             else if (jsonData.type === 'final') {
@@ -221,11 +257,12 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
                 setMessages(prev => [...prev, finalMessage]);
                 setSessionId(jsonData.sessionId);
               } else {
-                // Gestion spéciale pour la limite de tours atteinte
+                // Gestion spéciale pour la limite de tours atteinte (50 tours)
                 if (jsonData.error === 'Maximum number of turns reached') {
+                  const turnsUsed = jsonData.metadata?.num_turns || 50;
                   const turnLimitMessage: ClaudeCodeMessage = {
                     id: `turn-limit-${Date.now()}`,
-                    content: `⚠️ Limite de tours atteinte (${jsonData.metadata?.num_turns || 'N/A'} tours utilisés).\n\nLa tâche semble plus complexe que prévu. Vous pouvez :\n• Reformuler votre question de manière plus spécifique\n• Augmenter la limite de tours\n• Diviser la tâche en plusieurs parties`,
+                    content: `Limite de ${turnsUsed} tours atteinte.\n\nL'analyse progresse bien mais la tâche s'avère plus complexe que prévu.\n\nOptions disponibles :\n• Continuer avec 50 tours supplémentaires\n• Obtenir une réponse partielle basée sur l'analyse actuelle\n\nQue souhaitez-vous faire ?`,
                     role: 'system',
                     timestamp: new Date(),
                     metadata: jsonData.metadata,
@@ -268,6 +305,7 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
       setIsLoading(false);
       setAbortController(null);
       setThinkingStartTime(null);
+      setCurrentAction(null);
     }
   };
 
@@ -320,6 +358,7 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
     // Contrôle de l'exécution
     stopThinking,
     canStop: isLoading && abortController !== null,
-    thinkingStartTime
+    thinkingStartTime,
+    currentAction
   };
 }
