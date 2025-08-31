@@ -46,7 +46,7 @@ const ClaudeCodePanel: React.FC<ClaudeCodePanelProps> = ({ workspaceId }) => {
     stopThinking,
     canStop,
     thinkingStartTime,
-  } = useClaudeCode(workspaceId);
+  } = useClaudeCode(workspaceId, activeSessionId);
 
   // Auto-scroll vers le bas
   useEffect(() => {
@@ -178,7 +178,18 @@ const ClaudeCodePanel: React.FC<ClaudeCodePanelProps> = ({ workspaceId }) => {
 
       {/* Zone des messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
+        {sessions.length === 0 && !sessionsLoading ? (
+          <div className="text-center text-gray-500 mt-8">
+            <p className="text-lg mb-2">Aucune session de chat</p>
+            <p className="text-sm mb-4">Cliquez sur le bouton "+" pour créer votre première session</p>
+            <button
+              onClick={() => setShowNewSessionDialog(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Créer une session
+            </button>
+          </div>
+        ) : messages.length === 0 && activeSessionId ? (
           <div className="text-center text-gray-500 mt-8">
             <p className="text-lg mb-2">Assistant Claude Code</p>
             <p className="text-sm">Expert en analyse de code et documentation technique</p>
@@ -192,7 +203,7 @@ const ClaudeCodePanel: React.FC<ClaudeCodePanelProps> = ({ workspaceId }) => {
               </ul>
             </div>
           </div>
-        )}
+        ) : null}
 
         {messages.map((message) => {
           // Messages d'utilisateur - bulles bleues
@@ -266,7 +277,7 @@ const ClaudeCodePanel: React.FC<ClaudeCodePanelProps> = ({ workspaceId }) => {
       </div>
 
       {/* Zone de saisie */}
-      <div className="border-t border-gray-700 p-4 bg-gray-800">
+      <div className={`border-t border-gray-700 p-4 bg-gray-800 ${!activeSessionId ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="flex space-x-2 mb-3">
           <input
             type="text"
@@ -301,7 +312,15 @@ const ClaudeCodePanel: React.FC<ClaudeCodePanelProps> = ({ workspaceId }) => {
         {/* Options simplifiées */}
         <div className="flex justify-center">
           <button
-            onClick={clearMessages}
+            onClick={() => {
+              clearMessages();
+              // Si on a une session active, effacer aussi ses messages en base
+              if (activeSessionId) {
+                fetch(`/api/workspaces/${workspaceId}/chat-sessions/${activeSessionId}/messages`, {
+                  method: 'DELETE'
+                });
+              }
+            }}
             className="px-4 py-1 text-xs bg-gray-700 text-gray-300 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
           >
             Effacer l'historique

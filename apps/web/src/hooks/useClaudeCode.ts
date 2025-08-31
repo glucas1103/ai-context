@@ -8,7 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ClaudeCodeMessage, AgentStatus, UseClaudeCodeReturn } from '@/types/claude-code';
 
-export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
+export function useClaudeCode(workspaceId: string, chatSessionId?: string | null): UseClaudeCodeReturn {
   const [messages, setMessages] = useState<ClaudeCodeMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +109,11 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
 
     setMessages(prev => [...prev, userMessage]);
     
+    // Sauvegarder le message utilisateur si on a une session
+    if (chatSessionId) {
+      await saveMessage(userMessage, chatSessionId);
+    }
+    
     setIsLoading(true);
     setError(null);
     setThinkingStartTime(Date.now());
@@ -127,7 +132,8 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
         },
         body: JSON.stringify({
           message: content.trim(),
-          sessionId,
+          sessionId, // Le sessionId Claude Code pour reprendre la conversation
+          chatSessionId, // Notre ID de session en base pour la persistance
           maxTurns: adaptiveMaxTurns,
           complexity,
           adaptiveTurns
@@ -189,6 +195,11 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
                     streamData: streamMessage
                   };
                   setMessages(prev => [...prev, assistantStep]);
+                  
+                  // Sauvegarder le message assistant si on a une session
+                  if (chatSessionId) {
+                    saveMessage(assistantStep, chatSessionId);
+                  }
                 }
                 
                 // Vérifier s'il y a des utilisations d'outils dans le message assistant
@@ -231,6 +242,11 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
                       isToolUsage: true // Nouveau flag pour identifier les messages d'outils
                     };
                     setMessages(prev => [...prev, toolUseMessage]);
+                    
+                    // Sauvegarder le message d'outil si on a une session
+                    if (chatSessionId) {
+                      saveMessage(toolUseMessage, chatSessionId);
+                    }
                   }
                 }
               } 
@@ -256,6 +272,17 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
                 };
                 setMessages(prev => [...prev, finalMessage]);
                 setSessionId(jsonData.sessionId);
+                
+                // Sauvegarder le message final et mettre à jour la session Claude Code ID
+                if (chatSessionId) {
+                  saveMessage(finalMessage, chatSessionId);
+                  // Mettre à jour le claude_session_id dans la session
+                  fetch(`/api/workspaces/${workspaceId}/chat-sessions/${chatSessionId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ claude_session_id: jsonData.sessionId })
+                  });
+                }
               } else {
                 // Gestion spéciale pour la limite de tours atteinte (50 tours)
                 if (jsonData.error === 'Maximum number of turns reached') {
@@ -270,6 +297,11 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
                   };
                   setMessages(prev => [...prev, turnLimitMessage]);
                   setSessionId(jsonData.sessionId);
+                  
+                  // Sauvegarder le message de limite de tours
+                  if (chatSessionId) {
+                    saveMessage(turnLimitMessage, chatSessionId);
+                  }
                 } else {
                   throw new Error(jsonData.error || 'Erreur inconnue');
                 }
@@ -308,6 +340,72 @@ export function useClaudeCode(workspaceId: string): UseClaudeCodeReturn {
       setCurrentAction(null);
     }
   };
+
+  // Charger les messages d'une session depuis la base de données
+  const loadSessionMessages = async (chatSessionId: string) => {
+    try {
+      const response = await fetch(`/api/workspaces/${workspaceId}/chat-sessions/${chatSessionId}/messages`);
+      if (response.ok) {
+        const data = await response.json();
+        // Convertir les messages de la DB vers le format ClaudeCodeMessage
+        const loadedMessages: ClaudeCodeMessage[] = (data.messages || []).map((msg: any) => ({
+          id: msg.id,
+          content: msg.content,
+          role: msg.role,
+          timestamp: new Date(msg.created_at),
+          metadata: msg.metadata,
+          isIntermediate: msg.metadata?.isIntermediate || false,
+          isToolUsage: msg.metadata?.isToolUsage || false
+        }));
+        setMessages(loadedMessages);
+        
+        // Récupérer le claude_session_id s'il existe
+        const sessionResponse = await fetch(`/api/workspaces/${workspaceId}/chat-sessions/${chatSessionId}`);
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          if (sessionData.session?.claude_session_id) {
+            setSessionId(sessionData.session.claude_session_id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des messages:', error);
+    }
+  };
+
+  // Sauvegarder un message en base de données
+  const saveMessage = async (message: ClaudeCodeMessage, chatSessionId: string) => {
+    try {
+      await fetch(`/api/workspaces/${workspaceId}/chat-sessions/${chatSessionId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: message.role,
+          content: message.content,
+          metadata: {
+            ...message.metadata,
+            isIntermediate: message.isIntermediate,
+            isToolUsage: message.isToolUsage,
+            streamData: message.streamData
+          }
+        })
+      });
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du message:', error);
+    }
+  };
+
+  // Charger les messages quand la session change
+  useEffect(() => {
+    if (chatSessionId) {
+      loadSessionMessages(chatSessionId);
+    } else {
+      // Nouvelle session vide
+      setMessages([]);
+      setSessionId(null);
+      setError(null);
+    }
+  }, [chatSessionId]);
 
   const clearMessages = () => {
     setMessages([]);

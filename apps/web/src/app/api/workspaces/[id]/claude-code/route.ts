@@ -63,7 +63,7 @@ export async function POST(
     }
 
     const { id: workspaceId } = await params;
-    const { message, sessionId, maxTurns = 5 } = await request.json();
+    const { message, sessionId, chatSessionId, maxTurns = 5 } = await request.json();
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(

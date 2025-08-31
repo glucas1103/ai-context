@@ -150,6 +150,8 @@ export function useChatSessions({ workspaceId }: UseChatSessionsProps): UseChatS
     refreshSessions();
   }, [refreshSessions]);
 
+
+
   return {
     sessions,
     activeSessionId,
