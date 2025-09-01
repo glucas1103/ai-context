@@ -135,8 +135,8 @@ INSTRUCTIONS:
         ...process.env,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
         PATH: `${process.env.PATH}:/usr/local/bin:/Users/lucasgaillard/.npm-global/bin`
-      }
-      // Pas de paramètre resume = nouvelle session isolée à chaque fois
+      },
+      ...(sessionId && { resume: sessionId })
     };
 
     // Utilisation de la fonction query du SDK Claude Code avec streaming
