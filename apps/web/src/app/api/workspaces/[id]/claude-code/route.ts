@@ -130,13 +130,13 @@ INSTRUCTIONS:
 - Fournis des suggestions d'amélioration quand pertinent`,
       allowedTools: ['Read', 'Grep', 'WebSearch'],
       pathToClaudeCodeExecutable: '/Users/lucasgaillard/.npm-global/lib/node_modules/@anthropic-ai/claude-code/cli.js',
-      executable: 'node',
+      executable: 'node' as const,
       env: {
         ...process.env,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
         PATH: `${process.env.PATH}:/usr/local/bin:/Users/lucasgaillard/.npm-global/bin`
-      },
-      ...(sessionId && { resume: sessionId })
+      }
+      // Pas de paramètre resume = nouvelle session isolée à chaque fois
     };
 
     // Utilisation de la fonction query du SDK Claude Code avec streaming

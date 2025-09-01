@@ -57,8 +57,8 @@ Réponds toujours en français et de manière structurée. Utilise des exemples 
         ...process.env,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
         PATH: `${process.env.PATH}:/usr/local/bin`
-      },
-      ...(sessionId && { resume: sessionId })
+      }
+      // Pas de paramètre resume = nouvelle session isolée à chaque fois
     };
 
     // Utilisation de la fonction query du SDK Claude Code avec streaming
