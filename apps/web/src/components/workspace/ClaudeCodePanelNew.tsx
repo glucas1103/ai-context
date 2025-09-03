@@ -48,6 +48,7 @@ const ClaudeCodePanel: React.FC<ClaudeCodePanelProps> = ({ workspaceId }) => {
     thinkingStartTime,
   } = useClaudeCode(workspaceId, activeSessionId);
 
+
   // Auto-scroll vers le bas
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

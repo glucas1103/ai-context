@@ -13,6 +13,7 @@ import {
   DOCUMENTATION_AGENT_CONFIG 
 } from '@/types/components/universal';
 import { DocumentationNode, LegacyChatMessage, DocumentationApiResponse } from '@/types/api/documentation';
+import { useLocalTreeState } from '@/hooks/useLocalTreeState';
 
 interface DocumentationPageProps {
   params: Promise<{
@@ -34,8 +35,21 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
 
   const [error, setError] = useState<string | null>(null);
 
-
   const workspaceId = resolvedParams?.id;
+
+  // Utiliser le hook d'état local optimiste pour l'arbre
+  const {
+    localData: localTreeData,
+    pendingOperations,
+    isSyncing,
+    forceSync,
+    hasPendingChanges
+  } = useLocalTreeState({
+    workspaceId: workspaceId || '',
+    initialData: treeData,
+    storageKey: 'documentation-tree',
+    onError: (errorMessage) => setError(errorMessage)
+  });
 
   // Charger la structure de documentation
   const loadDocumentationTree = useCallback(async () => {
@@ -130,8 +144,11 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
 
   // Actions CRUD pour l'arborescence
   const handleTreeUpdate = useCallback(async () => {
-    await loadDocumentationTree();
-  }, [loadDocumentationTree]);
+    // Utiliser la synchronisation forcée du hook local
+    if (workspaceId) {
+      await forceSync();
+    }
+  }, [forceSync, workspaceId]);
 
   const handleError = useCallback((errorMessage: string) => {
     setError(errorMessage);
@@ -185,12 +202,36 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
               Gérez et enrichissez votre documentation personnalisée
             </p>
           </div>
-          {isSaving && (
-            <div className="flex items-center space-x-2 text-blue-400">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
-              <span className="text-sm">Sauvegarde en cours...</span>
-            </div>
-          )}
+          <div className="flex items-center space-x-4">
+            {isSaving && (
+              <div className="flex items-center space-x-2 text-blue-400">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                <span className="text-sm">Sauvegarde en cours...</span>
+              </div>
+            )}
+            
+            {/* Indicateur de synchronisation de l'arbre */}
+            {hasPendingChanges && (
+              <div className="flex items-center space-x-2 text-yellow-400">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                <span className="text-sm">Modifications en cours...</span>
+                <button
+                  onClick={forceSync}
+                  className="px-2 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
+                  title="Forcer la synchronisation"
+                >
+                  🔄
+                </button>
+              </div>
+            )}
+            
+            {isSyncing && (
+              <div className="flex items-center space-x-2 text-blue-400">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                <span className="text-sm">Synchronisation...</span>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -212,7 +253,7 @@ const DocumentationPage: React.FC<DocumentationPageProps> = ({ params }) => {
         <ThreePanelsLayout
           leftPanel={
             <UniversalTreePanel
-              data={treeData}
+              data={localTreeData.length > 0 ? localTreeData : treeData}
               mode="editable"
               selectedId={selectedFile?.id}
               onSelect={handleSelectFile}

@@ -2,13 +2,15 @@ import { ROUTES } from "@/constants/routes";
 import { API_ENDPOINTS } from "@/constants/api";
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Tree, TreeApi, NodeApi } from 'react-arborist';
 import { UniversalTreePanelProps, UniversalTreeNode, PanelMode } from '@/types/components/universal';
 import { TreeNodeBase } from '@/types/common';
 import { FileTreeNode } from '@/types/api/workspace';
 import DocumentationModals from '@/components/documentation/DocumentationModals';
 import { DocumentationApiResponse, DocumentationNode, ArboristNodeData } from '@/types/api/documentation';
+import { useLocalTreeState } from '@/hooks/useLocalTreeState';
+import TreeStatusIndicator from './TreeStatusIndicator';
 
 interface ContextMenuState {
   visible: boolean;
@@ -40,6 +42,33 @@ function UniversalTreePanel<T extends TreeNodeBase>({
   const [treeHeight, setTreeHeight] = useState(400);
   const treeRef = useRef<TreeApi<ArboristNodeData> | null>(null);
 
+  // Utiliser le hook d'état local optimiste
+  const {
+    localData,
+    pendingOperations,
+    isSyncing,
+    createFolder: localCreateFolder,
+    createFile: localCreateFile,
+    renameItem: localRenameItem,
+    deleteItem: localDeleteItem,
+    moveItems: localMoveItems,
+    forceSync,
+    hasPendingChanges
+  } = useLocalTreeState({
+    workspaceId: workspaceId || '',
+    initialData: data,
+    storageKey: 'documentation-tree',
+    onError
+  });
+
+  // Synchroniser les données locales avec les props data quand elles changent
+  useEffect(() => {
+    if (data.length > 0 && !hasPendingChanges) {
+      // Seulement synchroniser si pas d'opérations en cours
+      // Cela évite de perdre les modifications locales
+    }
+  }, [data, hasPendingChanges]);
+
   // Calculer la hauteur de l'arborescence pour le mode readonly
   React.useEffect(() => {
     if (mode === 'readonly') {
@@ -67,6 +96,9 @@ function UniversalTreePanel<T extends TreeNodeBase>({
     }));
   }, [selectedId]);
 
+  // Utiliser localData pour l'affichage
+  const displayData = localData.length > 0 ? localData : data;
+
   // Trouver un nœud par ID dans la structure originale
   const findNodeById = useCallback((nodes: T[], id: string): T | null => {
     for (const node of nodes) {
@@ -78,6 +110,11 @@ function UniversalTreePanel<T extends TreeNodeBase>({
     }
     return null;
   }, []);
+
+  // Trouver un nœud par ID dans les données d'affichage
+  const findNodeInDisplayData = useCallback((id: string): T | null => {
+    return findNodeById(displayData, id);
+  }, [displayData, findNodeById]);
 
   // Fermer le menu contextuel quand on clique ailleurs
   const handleDocumentClick = useCallback(() => {
@@ -98,147 +135,61 @@ function UniversalTreePanel<T extends TreeNodeBase>({
   }, [mode]);
 
   const doCreateFolder = useCallback(async (name: string, parentId?: string) => {
-    if (!workspaceId || !onTreeUpdate || !onError) return;
+    if (!workspaceId) return;
 
     try {
-      const response = await fetch(`/api/workspaces/${workspaceId}/documentation/folders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          type: 'folder',
-          parent_id: parentId,
-        }),
-      });
-
-      const result: DocumentationApiResponse<DocumentationNode> = await response.json();
-      
-      if (result.success) {
-        await onTreeUpdate();
-        setCreateModal({ isOpen: false, type: null });
-      } else {
-        onError(result.error?.message || 'Erreur lors de la création du dossier');
-      }
+      await localCreateFolder(name, parentId);
+      setCreateModal({ isOpen: false, type: null });
     } catch (error) {
       console.error('Error creating folder:', error);
-      onError('Erreur de connexion');
+      // L'erreur est déjà gérée par le hook local
     }
-  }, [workspaceId, onTreeUpdate, onError]);
+  }, [workspaceId, localCreateFolder]);
 
   const doCreateFile = useCallback(async (name: string, parentId?: string) => {
-    if (!workspaceId || !onTreeUpdate || !onError) return;
+    if (!workspaceId) return;
 
     try {
-      const response = await fetch(`/api/workspaces/${workspaceId}/documentation/files`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          type: 'file',
-          parent_id: parentId,
-          fileExtension: 'md',
-        }),
-      });
-
-      const result: DocumentationApiResponse<DocumentationNode> = await response.json();
-      
-      if (result.success) {
-        await onTreeUpdate();
-        setCreateModal({ isOpen: false, type: null });
-        if (result.data) {
-          onSelect(result.data as unknown as T);
-        }
-      } else {
-        onError(result.error?.message || 'Erreur lors de la création du fichier');
-      }
+      await localCreateFile(name, parentId);
+      setCreateModal({ isOpen: false, type: null });
     } catch (error) {
       console.error('Error creating file:', error);
-      onError('Erreur de connexion');
+      // L'erreur est déjà gérée par le hook local
     }
-  }, [workspaceId, onTreeUpdate, onSelect, onError]);
+  }, [workspaceId, localCreateFile]);
 
   const renameItem = useCallback(async (id: string, newName: string) => {
-    if (!workspaceId || !onTreeUpdate || !onError) return;
+    if (!workspaceId) return;
 
     try {
-      const response = await fetch(`/api/workspaces/${workspaceId}/documentation/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: newName,
-        }),
-      });
-
-      const result: DocumentationApiResponse<DocumentationNode> = await response.json();
-      
-      if (result.success) {
-        await onTreeUpdate();
-      } else {
-        onError(result.error?.message || 'Erreur lors du renommage');
-      }
+      await localRenameItem(id, newName);
     } catch (error) {
       console.error('Error renaming item:', error);
-      onError('Erreur de connexion');
+      // L'erreur est déjà gérée par le hook local
     }
-  }, [workspaceId, onTreeUpdate, onError]);
+  }, [workspaceId, localRenameItem]);
 
   const deleteItem = useCallback(async (id: string) => {
-    if (!workspaceId || !onTreeUpdate || !onError) return;
+    if (!workspaceId) return;
 
     try {
-      const response = await fetch(`/api/workspaces/${workspaceId}/documentation/${id}`, {
-        method: 'DELETE',
-      });
-
-      const result: DocumentationApiResponse = await response.json();
-      
-      if (result.success) {
-        await onTreeUpdate();
-      } else {
-        onError(result.error?.message || 'Erreur lors de la suppression');
-      }
+      await localDeleteItem(id);
     } catch (error) {
       console.error('Error deleting item:', error);
-      onError('Erreur de connexion');
+      // L'erreur est déjà gérée par le hook local
     }
-  }, [workspaceId, onTreeUpdate, onError]);
+  }, [workspaceId, localDeleteItem]);
 
   const moveItems = useCallback(async (dragIds: string[], parentId?: string, index?: number) => {
-    if (!workspaceId || !onTreeUpdate || !onError) return;
+    if (!workspaceId) return;
 
     try {
-      for (const dragId of dragIds) {
-        const response = await fetch(`/api/workspaces/${workspaceId}/documentation/${dragId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            parent_id: parentId,
-            order_index: index,
-          }),
-        });
-
-        const result: DocumentationApiResponse<DocumentationNode> = await response.json();
-        
-        if (!result.success) {
-          onError(result.error?.message || 'Erreur lors du déplacement');
-          return;
-        }
-      }
-      
-      await onTreeUpdate();
+      await localMoveItems(dragIds, parentId, index);
     } catch (error) {
       console.error('Error moving items:', error);
-      onError('Erreur de connexion lors du déplacement');
+      // L'erreur est déjà gérée par le hook local
     }
-  }, [workspaceId, onTreeUpdate, onError]);
+  }, [workspaceId, localMoveItems]);
 
   // Gestionnaire de clic droit
   const handleContextMenu = useCallback((event: React.MouseEvent, nodeId?: string, nodeType?: 'folder' | 'file' | 'directory') => {
@@ -259,12 +210,12 @@ function UniversalTreePanel<T extends TreeNodeBase>({
   // Gestionnaires d'événements React Arborist pour mode editable
   const handleArboristSelect = useCallback((nodes: NodeApi<ArboristNodeData>[]) => {
     if (nodes.length > 0) {
-      const selectedNode = findNodeById(data, nodes[0].data.id);
+      const selectedNode = findNodeInDisplayData(nodes[0].data.id);
       onSelect(selectedNode);
     } else {
       onSelect(null);
     }
-  }, [data, findNodeById, onSelect]);
+  }, [findNodeInDisplayData, onSelect]);
 
   const handleArboristCreate = useCallback(({ parentId, index, type }: { 
     parentId: string | null; 
@@ -282,8 +233,8 @@ function UniversalTreePanel<T extends TreeNodeBase>({
   }, [createFolder, createFile]);
 
   const handleArboristRename = useCallback(({ id, name }: { id: string; name: string }) => {
-    renameItem(id, name);
-  }, [renameItem]);
+    localRenameItem(id, name);
+  }, [localRenameItem]);
 
   const handleArboristMove = useCallback(({ dragIds, parentId, index }: { 
     dragIds: string[]; 
@@ -293,12 +244,12 @@ function UniversalTreePanel<T extends TreeNodeBase>({
     index: number; 
   }) => {
     const actualParentId = parentId || undefined;
-    moveItems(dragIds, actualParentId, index);
-  }, [moveItems]);
+    localMoveItems(dragIds, actualParentId, index);
+  }, [localMoveItems]);
 
   const handleArboristDelete = useCallback(({ ids }: { ids: string[] }) => {
-    ids.forEach(id => deleteItem(id));
-  }, [deleteItem]);
+    ids.forEach(id => localDeleteItem(id));
+  }, [localDeleteItem]);
 
   // Gestionnaire global de clics pour fermer le menu contextuel
   React.useEffect(() => {
@@ -330,7 +281,7 @@ function UniversalTreePanel<T extends TreeNodeBase>({
         break;
       case 'delete':
         if (nodeId && confirm(`Êtes-vous sûr de vouloir supprimer cet élément ?`)) {
-          deleteItem(nodeId);
+          localDeleteItem(nodeId);
         }
         break;
     }
@@ -526,25 +477,35 @@ function UniversalTreePanel<T extends TreeNodeBase>({
         <h2 className="text-lg font-semibold text-white">{config.title}</h2>
         {config.showCount && (
           <p className="text-sm text-gray-400">
-            {data.length} élément{data.length !== 1 ? 's' : ''}
+            {displayData.length} élément{displayData.length !== 1 ? 's' : ''}
           </p>
         )}
         
         {/* Actions pour mode editable */}
         {mode === 'editable' && (
-          <div className="flex space-x-2 mt-2">
-            <button
-              onClick={() => createFolder()}
-              className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              📁 Dossier
-            </button>
-            <button
-              onClick={() => createFile()}
-              className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              📝 Fichier
-            </button>
+          <div className="flex flex-col space-y-2 mt-2">
+            <div className="flex space-x-2">
+              <button
+                onClick={() => createFolder()}
+                className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                📁 Dossier
+              </button>
+              <button
+                onClick={() => createFile()}
+                className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                📝 Fichier
+              </button>
+            </div>
+            
+            {/* Indicateur de statut */}
+            <TreeStatusIndicator
+              pendingOperations={pendingOperations}
+              isSyncing={isSyncing}
+              hasPendingChanges={hasPendingChanges}
+              onForceSync={forceSync}
+            />
           </div>
         )}
       </div>
@@ -558,12 +519,12 @@ function UniversalTreePanel<T extends TreeNodeBase>({
           <div className="flex items-center justify-center h-32">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
           </div>
-        ) : data.length > 0 ? (
+        ) : displayData.length > 0 ? (
           <div className="h-full text-white">
             {mode === 'editable' ? (
               <Tree
                 ref={treeRef}
-                data={convertToArboristData(data)}
+                data={convertToArboristData(displayData)}
                 openByDefault={false}
                 width="100%"
                 height={800}
@@ -589,7 +550,7 @@ function UniversalTreePanel<T extends TreeNodeBase>({
               </Tree>
             ) : (
               <Tree
-                data={data}
+                data={displayData}
                 openByDefault={false}
                 width="100%"
                 height={treeHeight}
